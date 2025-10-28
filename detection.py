@@ -1,25 +1,23 @@
 from ultralytics import YOLO
 import cv2
-import pyrealsense2 as rs
+import numpy as np
+#import pyrealsense2 as rs
+import time
 
-class Detection:
-    def __init__(self, model_name):
-        self.models = []
-        self.model_paths = []
 
-        # Model(s) laden
-        if isinstance(model_name, str):
-            model_path = f"../models/{model_name}.pt"
-            self.models.append(YOLO(model_path))
+class ObjDetection:
+    def __init__(self, classes):
+        self.W=640
+        self.H=480
 
-        elif isinstance(model_name, (list, tuple)) and all(isinstance(x, str) for x in model_name):
-            for name in model_name:
-                model_paths = f"../models/{name}.pt"
-                self.models.append(YOLO(model_paths))
+        # Initialize a YOLOE model
+        self.model = YOLO("yolov8n-seg.pt")
+        # Save classes to detect
+        self.classes = classes
+        self.class_ids = [id for id in self.model.names if self.model.names[id] in classes]
 
-        else:
-            raise ValueError("model_name must be a string or list of strings.")
-
+        # Initialize webcam
+        self.cap = cv2.VideoCapture(0)
 
     # ---------------------------------------------------------
     # RealSense Setup
@@ -29,33 +27,108 @@ class Detection:
         pass
 
     # ---------------------------------------------------------
-    # Capture Frame von der Kamera
+    # Capture Frame in camera
     # ---------------------------------------------------------
     def get_frame(self):
-        # RGB- und Tiefenbild lesen
-        # Outputs: color_image, depth_image
-        pass
+        """""""""""""""""""""""""""
+        RGB- und Tiefenbild lesen
+        Outputs: color_image, depth_image
+        """""""""""""""""""""""""""
+        
+        # --> replace that with rs
+        ret, color_image = self.cap.read()
+
+        # --> replace that with rs
+        color_image = cv2.resize(color_image, (self.W, self.H))
+        depth_image = None
+        return color_image, depth_image
+
 
     # ---------------------------------------------------------
     # Run Detection
     # ---------------------------------------------------------
-    def detect(self, color_image):
-        # detect objects in frame
-        # Input color_image
-        # Output yolo_results --> classes, position 
-        pass
+    def detect_obj(self, color_image):
+        """""""""""""""""""""""""""
+        detect objects in frame
+        Input color_image
+        Output annotated_image, frame_mask --> classes, mask
+        """""""""""""""""""""""""""
+
+        results = self.model.predict(color_image, classes=self.class_ids)
+
+        annotated_image = color_image.copy()
+
+        frame_masks = []
+
+        # Get the result object (YOLO returns a list, one item per image)
+        result = results[0]
+
+        if result.masks is not None:
+            # Each entry in result.masks.data corresponds to a detected object's mask
+            for box, mask_tensor in zip(result.boxes, result.masks.data):
+                # Convert the mask tensor to a NumPy array
+                mask = mask_tensor.cpu().numpy()
+
+                # Convert mask values from [0, 1] to [0, 255] for visualization
+                mask_uint8 = (mask * 255).astype("uint8")
+
+                # Create a blue overlay (BGR color order)
+                color_mask = np.zeros_like(annotated_image)
+                color_mask[:, :, 0] = mask_uint8  # Fill blue channel
+
+                # Blend the mask overlay with the original image
+                alpha = 0.5  # Transparency factor (0 = transparent, 1 = opaque)
+                annotated_image = cv2.addWeighted(annotated_image, 1, color_mask, alpha, 0)
+
+                # Store the mask and its corresponding class name
+                frame_masks.append({
+                    "class": self.model.names[int(box.cls[0])],
+                    "mask": mask
+                })
+
+
+        return frame_masks, annotated_image
 
     # ---------------------------------------------------------
     # Fusion
     # ---------------------------------------------------------
-    def fusion(self, color_image, depth_image, yolo_results):
-        # calculate coordinates of detected images
-        # Input color_image, depth_image, yolo_results
-        # Output coordinates_results --> {label1: [[x1_1,y1_1,z1_1], [x1_2,y1_2,z1_2]], label2: [[x2_1,y2_1,z2_1]]}
+    def fuse(self, color_image, depth_image, frame_masks):
+        """""""""""""""""""""""""""
+        calculate coordinates of detected images
+        Input color_image, depth_image, frame_masks
+        Output coordinates_results --> {label1: [[x1_1,y1_1,z1_1], [x1_2,y1_2,z1_2]], label2: [[x2_1,y2_1,z2_1]]}
+        """""""""""""""""""""""""""
         pass
 
     # ---------------------------------------------------------
-    # Stop Kamera
+    # Stop Camera
     # ---------------------------------------------------------
-    def stop(self):
-        pass
+    def stop_camera(self):
+        self.cap.release()
+        cv2.destroyAllWindows()
+
+    def run(self):
+        while True:
+            # Kamerabild lesen
+            color_image, depth_image = self.get_frame()
+
+            # Objekte detektieren
+            frame_masks, annotated_color_image = self.detect_obj(color_image)
+
+            # RGB- und Tiefenbild fussionieren
+            coordinates = self.fuse(color_image, depth_image, frame_masks)
+            # Objekt-Koordinaten berechnen
+
+            # Detektion anzeigen
+            cv2.imshow("Orginal", color_image)
+            cv2.imshow("Detektion", annotated_color_image)
+
+            # Beenden mit 'q'
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+        
+        self.stop_camera()
+
+if __name__ == "__main__":
+    person_detection = ObjDetection(["person"])
+    person_detection.run()
