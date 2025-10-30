@@ -11,7 +11,7 @@ class ObjDetection:
         self.H=480
 
         # Initialize a YOLOE model
-        self.model = YOLO("yolov8n-seg.pt")
+        self.model = YOLO("yolo11n-seg.pt")
         # Save classes to detect
         self.classes = classes
         self.class_ids = [id for id in self.model.names if self.model.names[id] in classes]
