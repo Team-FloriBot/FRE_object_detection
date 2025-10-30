@@ -19,14 +19,47 @@ class ObjDetection:
         self.class_ids = [id for id in self.model.names if self.model.names[id] in classes]
 
         # Initialize webcam
-        self.cap = cv2.VideoCapture(0)
+        # self.cap = cv2.VideoCapture(0)
+
+        # Parameter to initialize RealSense 
+        self.pipeline = None
+        self.config = None
+
+        # Parameters to Fuse Images
+        self.align = None
+        self.depth_scale = None
+        #self.clipping_distance = None
+        self.is_initialized = False       
 
     # ---------------------------------------------------------
     # RealSense Setup
     # ---------------------------------------------------------
-    def initialize_realsense(self):
-        # init realsense
-        pass
+    def initialize_realsense(self, depth_resolution=(640, 480), color_resolution=(640, 480), fps=30):
+        """
+        Initialisiert RealSense-Pipeline und startet Streaming.
+        """
+        # Create pipeline and config
+        self.pipeline = rs.pipeline()
+        self.config = rs.config()
+
+        # Enable streams
+        self.config.enable_stream(rs.stream.depth, depth_resolution[0], depth_resolution[1], rs.format.z16, fps)
+        self.config.enable_stream(rs.stream.color, color_resolution[0], color_resolution[1], rs.format.bgr8, fps)
+
+        # Start streaming
+        profile = self.pipeline.start(self.config)
+
+        # Get depth scale
+        depth_sensor = profile.get_device().first_depth_sensor()
+        self.depth_scale = depth_sensor.get_depth_scale()
+        print(f"Depth Scale: {self.depth_scale}")
+
+        # Create alignment object (align depth to color)
+        align_to = rs.stream.color
+        self.align = rs.align(align_to)
+
+        self.is_initialized = True
+        print("RealSense initialized successfully.")
 
     # ---------------------------------------------------------
     # Capture Frame in camera
@@ -37,13 +70,11 @@ class ObjDetection:
         Outputs: color_image, depth_image
         """""""""""""""""""""""""""
         
-        # --> replace that with rs
-        ret, color_image = self.cap.read()
+        if not self.is_initialized:
+            raise RuntimeError("RealSense pipeline not initialized. Call Initialize_RealSense() first.")
 
-        # --> replace that with rs
-        color_image = cv2.resize(color_image, (self.W, self.H))
-        depth_image = None
-        return color_image, depth_image
+        frames = self.pipeline.wait_for_frames()
+        return frames
 
 
     # ---------------------------------------------------------
@@ -94,141 +125,90 @@ class ObjDetection:
     # ---------------------------------------------------------
     # Fusion
     # ---------------------------------------------------------
-    def fuse(self, color_image, depth_image, frame_masks):
+    def fuse(self, frames, frame_masks):
         """""""""""""""""""""""""""
         calculate coordinates of detected images
         Input color_image, depth_image, frame_masks
         Output coordinates_results --> {label1: [[x1_1,y1_1,z1_1], [x1_2,y1_2,z1_2]], label2: [[x2_1,y2_1,z2_1]]}
         """""""""""""""""""""""""""
-        pass
+        if not self.align:
+            raise RuntimeError("Alignment object not initialized. Run Initialize_RealSense() first.")
+
+        aligned_frames = self.align.process(frames)
+        aligned_depth_frame = aligned_frames.get_depth_frame()
+        aligned_color_frame = aligned_frames.get_color_frame()
+
+        if not aligned_depth_frame or not aligned_color_frame:
+            return None, None
+
+        aligned_depth_image = np.asanyarray(aligned_depth_frame.get_data())
+        aligned_color_image = np.asanyarray(aligned_color_frame.get_data())
+
+        return aligned_color_image, aligned_depth_image
 
     # ---------------------------------------------------------
     # Stop Camera
     # ---------------------------------------------------------
     def stop_camera(self):
-        self.cap.release()
-        cv2.destroyAllWindows()
+        """
+        Stoppt die RealSense-Pipeline.
+        """
+        if self.pipeline:
+            self.pipeline.stop()
+            print("RealSense pipeline stopped.")
 
     def run(self):
-        while True:
-            # Kamerabild lesen
-            color_image, depth_image = self.get_frame()
+        """
+        Hauptschleife: Frames lesen, fusionieren, anzeigen.
+        Beenden mit 'q'.
+        """
+        if not self.is_initialized:
+            self.initialize_realsense()
 
-            # Objekte detektieren
-            frame_masks, annotated_color_image = self.detect_obj(color_image)
+        print("Starting camera stream... Press 'q' to quit.")
 
-            # RGB- und Tiefenbild fussionieren
-            coordinates = self.fuse(color_image, depth_image, frame_masks)
-            # Objekt-Koordinaten berechnen
+        try:
+            while True:
+            
+                # Kamerabild lesen
+                #color_image, depth_image = self.get_frame()
+                frames = self.get_frame()
 
-            # Detektion anzeigen
-            cv2.imshow("Orginal", color_image)
-            cv2.imshow("Detektion", annotated_color_image)
+                # Objekte detektieren
+                #frame_masks, annotated_color_image = self.detect_obj(color_image)
 
-            # Beenden mit 'q'
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-        
-        self.stop_camera()
+                # Farbbild und Tiefenbild (unaligned)
+                color_frame = frames.get_color_frame()
+                depth_frame = frames.get_depth_frame()
+
+                if not color_frame or not depth_frame:
+                    continue
+
+                color_image = np.asanyarray(color_frame.get_data())
+                depth_image = np.asanyarray(depth_frame.get_data())
+
+                # RGB- und Tiefenbild fussionieren
+                # Alignment durchführen
+                aligned_color_image, aligned_depth_image = self.fuse(frames)
+                if aligned_color_image is None:
+                    continue
+                #coordinates = self.fuse(color_image, depth_image, frame_masks)
+                # Objekt-Koordinaten berechnen
+
+                # Detektion anzeigen
+                cv2.imshow("Orginal", color_image)
+                #cv2.imshow("Detektion", annotated_color_image)
+
+                # Beenden mit 'q'
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+        finally:
+            cv2.destroyAllWindows()
+            self.stop_camera()
 
 if __name__ == "__main__":
     # person_detection = ObjDetection(["person"])
     # person_detection.run()
-
-    ## License: Apache 2.0. See LICENSE file in root directory.
-    ## Copyright(c) 2015-2017 Intel Corporation. All Rights Reserved.
-
- ## License: Apache 2.0. See LICENSE file in root directory.
-## Copyright(c) 2017 Intel Corporation. All Rights Reserved.
-
-#####################################################
-##              Align Depth to Color               ##
-#####################################################
-
-
-
-    # Create a pipeline
-    pipeline = rs.pipeline()
-
-    # Create a config and configure the pipeline to stream
-    #  different resolutions of color and depth streams
-    config = rs.config()
-
-    # Get device product line for setting a supporting resolution
-    pipeline_wrapper = rs.pipeline_wrapper(pipeline)
-    pipeline_profile = config.resolve(pipeline_wrapper)
-    device = pipeline_profile.get_device()
-    device_product_line = str(device.get_info(rs.camera_info.product_line))
-
-    found_rgb = False
-    for s in device.sensors:
-        if s.get_info(rs.camera_info.name) == 'RGB Camera':
-            found_rgb = True
-            break
-    if not found_rgb:
-        print("The demo requires Depth camera with Color sensor")
-        exit(0)
-
-    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
-
-    # Start streaming
-    profile = pipeline.start(config)
-
-    # Getting the depth sensor's depth scale (see rs-align example for explanation)
-    depth_sensor = profile.get_device().first_depth_sensor()
-    depth_scale = depth_sensor.get_depth_scale()
-    print("Depth Scale is: " , depth_scale)
-
-    # We will be removing the background of objects more than
-    #  clipping_distance_in_meters meters away
-    clipping_distance_in_meters = 1 #1 meter
-    clipping_distance = clipping_distance_in_meters / depth_scale
-
-    # Create an align object
-    # rs.align allows us to perform alignment of depth frames to others frames
-    # The "align_to" is the stream type to which we plan to align depth frames.
-    align_to = rs.stream.color
-    align = rs.align(align_to)
-
-    # Streaming loop
-    try:
-        while True:
-            # Get frameset of color and depth
-            frames = pipeline.wait_for_frames()
-            # frames.get_depth_frame() is a 640x360 depth image
-
-            # Align the depth frame to color frame
-            aligned_frames = align.process(frames)
-
-            # Get aligned frames
-            aligned_depth_frame = aligned_frames.get_depth_frame() # aligned_depth_frame is a 640x480 depth image
-            color_frame = aligned_frames.get_color_frame()
-
-            # Validate that both frames are valid
-            if not aligned_depth_frame or not color_frame:
-                continue
-
-            depth_image = np.asanyarray(aligned_depth_frame.get_data())
-            color_image = np.asanyarray(color_frame.get_data())
-
-            # Remove background - Set pixels further than clipping_distance to grey
-            grey_color = 153
-            depth_image_3d = np.dstack((depth_image,depth_image,depth_image)) #depth image is 1 channel, color is 3 channels
-            bg_removed = np.where((depth_image_3d > clipping_distance) | (depth_image_3d <= 0), grey_color, color_image)
-
-            # Render images:
-            #   depth align to color on left
-            #   depth on right
-            depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
-            images = np.hstack((bg_removed, depth_colormap))
-
-            cv2.namedWindow('Align Example', cv2.WINDOW_NORMAL)
-            cv2.imshow('Align Example', images)
-            key = cv2.waitKey(1)
-            # Press esc or 'q' to close the image window
-            if key & 0xFF == ord('q') or key == 27:
-                cv2.destroyAllWindows()
-                break
-    finally:
-        pipeline.stop()
+    test_object=ObjDetection(["test"])
+    test_object.run()
+ 
