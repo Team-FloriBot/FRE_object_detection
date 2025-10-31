@@ -66,7 +66,7 @@ class ObjDetection:
     # ---------------------------------------------------------
     def get_frame(self):
         """""""""""""""""""""""""""
-        RGB- und Tiefenbild lesen
+        read and align RGB- and Depth-Frame
         Outputs: color_image, depth_image
         """""""""""""""""""""""""""
         
@@ -74,8 +74,28 @@ class ObjDetection:
             raise RuntimeError("RealSense pipeline not initialized. Call Initialize_RealSense() first.")
 
         frames = self.pipeline.wait_for_frames()
-        return frames
 
+        return frames
+        
+
+    # ---------------------------------------------------------
+    # Align captured frames
+    # ---------------------------------------------------------
+    def align_frames(self, frames):
+        if not self.align:
+            raise RuntimeError("Alignment object not initialized. Run Initialize_RealSense() first.")
+
+        aligned_frames = self.align.process(frames)
+        aligned_depth_frame = aligned_frames.get_depth_frame()
+        aligned_color_frame = aligned_frames.get_color_frame()
+
+        if not aligned_depth_frame or not aligned_color_frame:
+            return None, None
+
+        aligned_depth_image = np.asanyarray(aligned_depth_frame.get_data())
+        aligned_color_image = np.asanyarray(aligned_color_frame.get_data())
+
+        return aligned_color_image, aligned_depth_image
 
     # ---------------------------------------------------------
     # Run Detection
@@ -91,7 +111,7 @@ class ObjDetection:
 
         annotated_image = color_image.copy()
 
-        frame_masks = []
+        obj_masks = []
 
         # Get the result object (YOLO returns a list, one item per image)
         result = results[0]
@@ -114,37 +134,41 @@ class ObjDetection:
                 annotated_image = cv2.addWeighted(annotated_image, 1, color_mask, alpha, 0)
 
                 # Store the mask and its corresponding class name
-                frame_masks.append({
+                obj_masks.append({
                     "class": self.model.names[int(box.cls[0])],
                     "mask": mask
                 })
 
 
-        return frame_masks, annotated_image
+        return obj_masks, annotated_image
 
     # ---------------------------------------------------------
     # Fusion
     # ---------------------------------------------------------
-    def fuse(self, frames, frame_masks):
+    def fuse(self, color_image, depth_image, obj_masks):
         """""""""""""""""""""""""""
         calculate coordinates of detected images
         Input color_image, depth_image, frame_masks
         Output coordinates_results --> {label1: [[x1_1,y1_1,z1_1], [x1_2,y1_2,z1_2]], label2: [[x2_1,y2_1,z2_1]]}
         """""""""""""""""""""""""""
-        if not self.align:
-            raise RuntimeError("Alignment object not initialized. Run Initialize_RealSense() first.")
+        for obj in obj_masks:
+            # Maske binär
+            mask = (obj["mask"] > 0).astype(np.uint8)
 
-        aligned_frames = self.align.process(frames)
-        aligned_depth_frame = aligned_frames.get_depth_frame()
-        aligned_color_frame = aligned_frames.get_color_frame()
+            # 1️⃣ Ausschnitt des Tiefenbilds für diese Maske
+            depth_masked = np.zeros_like(depth_image)
+            depth_masked[mask > 0] = depth_image[mask > 0]
 
-        if not aligned_depth_frame or not aligned_color_frame:
-            return None, None
 
-        aligned_depth_image = np.asanyarray(aligned_depth_frame.get_data())
-        aligned_color_image = np.asanyarray(aligned_color_frame.get_data())
+            #########################
+            # compute z values for depth_masked
 
-        return aligned_color_image, aligned_depth_image
+            # compute x and y out of z
+
+            # create point_cloud (np.stack)
+            point_cloud = None
+    
+        return point_cloud, depth_masked
 
     # ---------------------------------------------------------
     # Stop Camera
@@ -170,45 +194,36 @@ class ObjDetection:
         try:
             while True:
             
-                # Kamerabild lesen
-                #color_image, depth_image = self.get_frame()
+                # read cameraframes
                 frames = self.get_frame()
 
-                # Objekte detektieren
-                #frame_masks, annotated_color_image = self.detect_obj(color_image)
-
-                # Farbbild und Tiefenbild (unaligned)
-                color_frame = frames.get_color_frame()
-                depth_frame = frames.get_depth_frame()
-
-                if not color_frame or not depth_frame:
+                #Align frames
+                color_image, depth_image = self.align_frames()
+                if not color_image or not depth_image:
                     continue
 
-                color_image = np.asanyarray(color_frame.get_data())
-                depth_image = np.asanyarray(depth_frame.get_data())
+                # Detect Objects
+                obj_masks, annotated_color_image = self.detect_obj(color_image)
 
-                # RGB- und Tiefenbild fussionieren
-                # Alignment durchführen
-                aligned_color_image, aligned_depth_image = self.fuse(frames)
-                if aligned_color_image is None:
-                    continue
-                #coordinates = self.fuse(color_image, depth_image, frame_masks)
-                # Objekt-Koordinaten berechnen
+                # Fuse RGB- und Depth-Image
+                point_cloud, depth_image_masked = self.fuse(color_image, depth_image, obj_masks)
+                
+                # Plot point cloud
 
-                # Detektion anzeigen
+                # Show results
                 cv2.imshow("Orginal", color_image)
-                #cv2.imshow("Detektion", annotated_color_image)
+                cv2.imshow("Detektion - RGB", annotated_color_image)
+                cv2.imshow("Detektion - Depth - Mask", depth_image_masked)
 
                 # Beenden mit 'q'
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
+
         finally:
             cv2.destroyAllWindows()
             self.stop_camera()
 
 if __name__ == "__main__":
-    # person_detection = ObjDetection(["person"])
-    # person_detection.run()
-    test_object=ObjDetection(["test"])
+    test_object=ObjDetection(["person"])
     test_object.run()
  
