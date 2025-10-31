@@ -28,7 +28,6 @@ class ObjDetection:
         # Parameters to Fuse Images
         self.align = None
         self.depth_scale = None
-        #self.clipping_distance = None
         self.is_initialized = False       
 
     # ---------------------------------------------------------
@@ -151,11 +150,12 @@ class ObjDetection:
         Input color_image, depth_image, frame_masks
         Output coordinates_results --> {label1: [[x1_1,y1_1,z1_1], [x1_2,y1_2,z1_2]], label2: [[x2_1,y2_1,z2_1]]}
         """""""""""""""""""""""""""
+        depth_masked =None
         for obj in obj_masks:
             # Maske binär
             mask = (obj["mask"] > 0).astype(np.uint8)
 
-            # 1️⃣ Ausschnitt des Tiefenbilds für diese Maske
+            # Ausschnitt des Tiefenbilds für diese Maske
             depth_masked = np.zeros_like(depth_image)
             depth_masked[mask > 0] = depth_image[mask > 0]
 
@@ -166,9 +166,9 @@ class ObjDetection:
             # compute x and y out of z
 
             # create point_cloud (np.stack)
-            point_cloud = None
+            point_cloud = 1
     
-        return point_cloud, depth_masked
+        return depth_masked
 
     # ---------------------------------------------------------
     # Stop Camera
@@ -198,22 +198,27 @@ class ObjDetection:
                 frames = self.get_frame()
 
                 #Align frames
-                color_image, depth_image = self.align_frames()
-                if not color_image or not depth_image:
-                    continue
+                color_image, depth_image = self.align_frames(frames)
+                #if not color_image or not depth_image:
+                #    continue
+                depth_normalized = cv2.normalize(depth_image, None, 0,255,cv2.NORM_MINMAX)
+                depth_normalized= depth_normalized.astype(np.uint8)
+                depth_image_color =cv2.applyColorMap(depth_normalized, cv2.COLORMAP_JET)
 
                 # Detect Objects
                 obj_masks, annotated_color_image = self.detect_obj(color_image)
 
                 # Fuse RGB- und Depth-Image
-                point_cloud, depth_image_masked = self.fuse(color_image, depth_image, obj_masks)
+                depth_image_masked = self.fuse(color_image, depth_image_color, obj_masks)
                 
                 # Plot point cloud
 
                 # Show results
                 cv2.imshow("Orginal", color_image)
                 cv2.imshow("Detektion - RGB", annotated_color_image)
-                cv2.imshow("Detektion - Depth - Mask", depth_image_masked)
+                if depth_image_masked is not None:
+
+                    cv2.imshow("Detektion - Depth - Mask", depth_image_masked)
 
                 # Beenden mit 'q'
                 if cv2.waitKey(1) & 0xFF == ord('q'):
