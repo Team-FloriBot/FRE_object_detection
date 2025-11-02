@@ -11,7 +11,7 @@ class ObjDetection:
         self.H=480
 
         # Initialize a YOLOE model
-        self.model = YOLO("yolo11n-seg.pt")
+        self.model = YOLO("yolo11m-seg.pt")
         # Save classes to detect
         self.classes = classes
         self.class_ids = [id for id in self.model.names if self.model.names[id] in classes]
@@ -54,7 +54,8 @@ class ObjDetection:
         Output annotated_image, frame_mask --> classes, mask
         """""""""""""""""""""""""""
 
-        results = self.model.predict(color_image, classes=self.class_ids)
+        #results = self.model.predict(color_image, classes=self.class_ids, conf=0.2)
+        results = self.model.predict(color_image)
 
         annotated_image = color_image.copy()
 
@@ -130,5 +131,5 @@ class ObjDetection:
         self.stop_camera()
 
 if __name__ == "__main__":
-    person_detection = ObjDetection(["person"])
+    person_detection = ObjDetection(["Apfel"])
     person_detection.run()

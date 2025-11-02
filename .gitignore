@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Environments
+venv/
+.env
+.venv/
+.venv311/
+venv311/
+
+# Jupyter / VSCode
+.ipynb_checkpoints/
+.vscode/
+
+# YOLO / Machine Learning
+runs/
+*.pt
+*.pth
+*.onnx
+*.log
+
+# System
+.DS_Store
+Thumbs.db
+
+#Datasets
+dataset_banane_apfel_orange/
+
+runs/
