@@ -150,13 +150,13 @@ class ObjDetection:
         Input color_image, depth_image, frame_masks
         Output coordinates_results --> {label1: [[x1_1,y1_1,z1_1], [x1_2,y1_2,z1_2]], label2: [[x2_1,y2_1,z2_1]]}
         """""""""""""""""""""""""""
-        depth_masked =None
+        depth_masked = np.zeros_like(depth_image)
+
         for obj in obj_masks:
             # Maske binär
             mask = (obj["mask"] > 0).astype(np.uint8)
 
             # Ausschnitt des Tiefenbilds für diese Maske
-            depth_masked = np.zeros_like(depth_image)
             depth_masked[mask > 0] = depth_image[mask > 0]
 
 
