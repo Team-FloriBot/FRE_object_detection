@@ -4,7 +4,8 @@ import numpy as np
 import pyrealsense2 as rs
 import time
 import matplotlib.pyplot as plt           # 2D plotting library producing publication quality figures
-
+import open3d as o3d
+import torch
 
 
 class ObjDetection:
@@ -14,6 +15,14 @@ class ObjDetection:
 
         # Initialize a YOLOE model
         self.model = YOLO("yolov8n-seg.pt")
+
+        # >>> GPU aktivieren, falls verfügbar <<<
+        if torch.cuda.is_available():
+            self.model.to('cuda')
+            print("YOLOv8 läuft auf der GPU (CUDA aktiviert).")
+        else:
+            print("Keine GPU gefunden, YOLO läuft auf der CPU.")
+
         # Save classes to detect
         self.classes = classes
         self.class_ids = [id for id in self.model.names if self.model.names[id] in classes]
@@ -145,31 +154,65 @@ class ObjDetection:
     # Fusion
     # ---------------------------------------------------------
     def fuse(self, color_image, depth_image, obj_masks):
-        """""""""""""""""""""""""""
-        calculate coordinates of detected images
-        Input color_image, depth_image, frame_masks
-        Output coordinates_results --> {label1: [[x1_1,y1_1,z1_1], [x1_2,y1_2,z1_2]], label2: [[x2_1,y2_1,z2_1]]}
-        """""""""""""""""""""""""""
-        depth_masked = np.zeros_like(depth_image)
+        """
+        Erzeugt Punktwolken aus Farb- und Tiefenbild für jedes erkannte Objekt.
+        Gibt ein Dictionary {class_name: {"points": Nx3, "colors": Nx3}} zurück.
+        """
+        # Hole Kamera-Parameter
+        profile = self.pipeline.get_active_profile()
+        intrinsics = profile.get_stream(rs.stream.color).as_video_stream_profile().get_intrinsics()
+        fx, fy, cx, cy = intrinsics.fx, intrinsics.fy, intrinsics.ppx, intrinsics.ppy
+
+        point_cloud_results = {}
+
+        # Maske für das gesamte Bild initialisieren
+        depth_masked = np.zeros_like(depth_image, dtype=depth_image.dtype)
 
         for obj in obj_masks:
+            label = obj["class"]
+
             # Maske binär
-            mask = (obj["mask"] > 0).astype(np.uint8)
+            mask = (obj["mask"] > 0.5).astype(np.uint8) 
 
-            # Ausschnitt des Tiefenbilds für diese Maske
-            depth_masked[mask > 0] = depth_image[mask > 0]
+            # Pixelkoordinaten der Maske
+            ys, xs = np.where(mask > 0)
+            if len(xs) == 0:
+                continue
 
+            # Maskiertes Tiefenbild füllen
+            depth_masked[ys, xs] = depth_image[ys, xs]
 
-            #########################
-            # compute z values for depth_masked
+            # Tiefenwerte in Meter
+            z = depth_image[ys, xs].astype(float) * self.depth_scale
+            
 
-            # compute x and y out of z
+            # Tiefenfilter
+            valid = (z > 0.1) & (z < 10.0) & (~np.isnan(z))
+            xs, ys, z = xs[valid], ys[valid], z[valid]
+            if len(xs) == 0:
+                continue
 
-            # create point_cloud (np.stack)
-            point_cloud = 1
+            # 3D-Koordinaten (Kamera-Koordinatensystem)
+            X = (xs - cx) * z / fx
+            Y = (ys - cy) * z / fy
+            Z = z
+
+            points = np.stack((X, Y, Z), axis=-1)
+
+            # Farbwerte an denselben Pixeln holen (BGR → RGB)
+            colors = color_image[ys, xs][:, ::-1] / 255.0
+
+            # Ergebnisse sammeln
+            if label not in point_cloud_results:
+                point_cloud_results[label] = {"points": points, "colors": colors}
+            else:
+                # Wenn mehrere Instanzen desselben Typs existieren
+                point_cloud_results[label]["points"] = np.vstack((point_cloud_results[label]["points"], points))
+                point_cloud_results[label]["colors"] = np.vstack((point_cloud_results[label]["colors"], colors))
+
+        return point_cloud_results, depth_masked
     
-        return depth_masked
-
+    
     # ---------------------------------------------------------
     # Stop Camera
     # ---------------------------------------------------------
@@ -191,6 +234,18 @@ class ObjDetection:
 
         print("Starting camera stream... Press 'q' to quit.")
 
+        # Open3D Visualizer einmalig starten
+        axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5, origin=[0,0,0])
+        vis = o3d.visualization.Visualizer()
+        vis.create_window("Live 3D Point Cloud", width=900, height=700)
+        pcd = o3d.geometry.PointCloud()
+   
+        vis.add_geometry(pcd)   # deine Punktwolke
+        vis.add_geometry(axis)  # Achsen hinzufügen
+
+        geom_added = True
+
+
         try:
             while True:
             
@@ -199,26 +254,44 @@ class ObjDetection:
 
                 #Align frames
                 color_image, depth_image = self.align_frames(frames)
-                #if not color_image or not depth_image:
-                #    continue
-                depth_normalized = cv2.normalize(depth_image, None, 0,255,cv2.NORM_MINMAX)
-                depth_normalized= depth_normalized.astype(np.uint8)
-                depth_image_color =cv2.applyColorMap(depth_normalized, cv2.COLORMAP_JET)
-
+                if color_image is None or depth_image is None:
+                    continue
+                
                 # Detect Objects
                 obj_masks, annotated_color_image = self.detect_obj(color_image)
 
-                # Fuse RGB- und Depth-Image
-                depth_image_masked = self.fuse(color_image, depth_image_color, obj_masks)
-                
-                # Plot point cloud
+                # Fuse RGB + Depth zu Punktwolken
+                pc_dict, depth_image_masked = self.fuse(color_image, depth_image, obj_masks)
+
+                # Makiertes Tiefenbild in Farbbild
+                depth_masked_normalized = cv2.normalize(depth_image_masked, None, 0,255,cv2.NORM_MINMAX)
+                depth_masked_normalized= depth_masked_normalized.astype(np.uint8)
+                depth_image_masked_color =cv2.applyColorMap(depth_masked_normalized, cv2.COLORMAP_JET)
 
                 # Show results
                 cv2.imshow("Orginal", color_image)
                 cv2.imshow("Detektion - RGB", annotated_color_image)
                 if depth_image_masked is not None:
+                    cv2.imshow("Detektion - Depth - Mask", depth_image_masked_color)
 
-                    cv2.imshow("Detektion - Depth - Mask", depth_image_masked)
+                # Open3D Punktwolke live aktualisieren
+                if len(pc_dict) > 0:
+                    all_points = []
+                    all_colors = []
+
+                    for data in pc_dict.values():
+                        all_points.append(data["points"])
+                        all_colors.append(data["colors"])
+
+                    points = np.concatenate(all_points, axis=0)
+                    colors = np.concatenate(all_colors, axis=0)
+
+                    pcd.points = o3d.utility.Vector3dVector(points)
+                    pcd.colors = o3d.utility.Vector3dVector(colors)
+                    vis.update_geometry(pcd)
+
+                    vis.poll_events()
+                    vis.update_renderer()
 
                 # Beenden mit 'q'
                 if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -226,6 +299,7 @@ class ObjDetection:
 
         finally:
             cv2.destroyAllWindows()
+            vis.destroy_window()
             self.stop_camera()
 
 if __name__ == "__main__":
