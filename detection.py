@@ -156,17 +156,30 @@ class ObjDetection:
     def fuse(self, color_image, depth_image, obj_masks):
         """
         Erzeugt Punktwolken aus Farb- und Tiefenbild für jedes erkannte Objekt.
-        Gibt ein Dictionary {class_name: {"points": Nx3, "colors": Nx3}} zurück.
+        Gibt ein Dictionary zurück:
+            { label_index: {
+                "label": str,
+                "points": Nx3,
+                "colors": Nx3,
+                "median": array([X_m, Y_m, Z_m])
+            } }
         """
         # Hole Kamera-Parameter
         profile = self.pipeline.get_active_profile()
         intrinsics = profile.get_stream(rs.stream.color).as_video_stream_profile().get_intrinsics()
         fx, fy, cx, cy = intrinsics.fx, intrinsics.fy, intrinsics.ppx, intrinsics.ppy
 
+        self.cx=cx
+        self.cy=cy
+        self.fx=fx
+        self.fy=fy
+
         point_cloud_results = {}
 
-        # Maske für das gesamte Bild initialisieren
+        # Maske für das Tiefenbild initialisieren
         depth_masked = np.zeros_like(depth_image, dtype=depth_image.dtype)
+
+        instance_counter = 0  # eindeutige ID für jede Instanz
 
         for obj in obj_masks:
             label = obj["class"]
@@ -185,7 +198,6 @@ class ObjDetection:
             # Tiefenwerte in Meter
             z = depth_image[ys, xs].astype(float) * self.depth_scale
             
-
             # Tiefenfilter
             valid = (z > 0.1) & (z < 10.0) & (~np.isnan(z))
             xs, ys, z = xs[valid], ys[valid], z[valid]
@@ -197,18 +209,33 @@ class ObjDetection:
             Y = (ys - cy) * z / fy
             Z = z
 
+            # invertierung für Open 3d
+            Y=-Y
+
             points = np.stack((X, Y, Z), axis=-1)
 
             # Farbwerte an denselben Pixeln holen (BGR → RGB)
             colors = color_image[ys, xs][:, ::-1] / 255.0
 
-            # Ergebnisse sammeln
-            if label not in point_cloud_results:
-                point_cloud_results[label] = {"points": points, "colors": colors}
-            else:
-                # Wenn mehrere Instanzen desselben Typs existieren
-                point_cloud_results[label]["points"] = np.vstack((point_cloud_results[label]["points"], points))
-                point_cloud_results[label]["colors"] = np.vstack((point_cloud_results[label]["colors"], colors))
+             # Median berechnen
+            median_xyz = np.median(points, axis=0)         
+
+            # # Ergebnisse sammeln
+            # if label not in point_cloud_results:
+            #     point_cloud_results[label] = {"points": points, "colors": colors}
+            # else:
+            #     # Wenn mehrere Instanzen desselben Typs existieren
+            #     point_cloud_results[label]["points"] = np.vstack((point_cloud_results[label]["points"], points))
+            #     point_cloud_results[label]["colors"] = np.vstack((point_cloud_results[label]["colors"], colors))
+                    # Eintrag in point_cloud_results
+            point_cloud_results[instance_counter] = {
+                "label": label,
+                "points": points,
+                "colors": colors,
+                "median": median_xyz
+            }
+            instance_counter += 1
+
 
         return point_cloud_results, depth_masked
     
@@ -245,7 +272,6 @@ class ObjDetection:
 
         geom_added = True
 
-
         try:
             while True:
             
@@ -263,10 +289,20 @@ class ObjDetection:
                 # Fuse RGB + Depth zu Punktwolken
                 pc_dict, depth_image_masked = self.fuse(color_image, depth_image, obj_masks)
 
-                # Makiertes Tiefenbild in Farbbild
+                # Makiertes Tiefenbild
                 depth_masked_normalized = cv2.normalize(depth_image_masked, None, 0,255,cv2.NORM_MINMAX)
                 depth_masked_normalized= depth_masked_normalized.astype(np.uint8)
                 depth_image_masked_color =cv2.applyColorMap(depth_masked_normalized, cv2.COLORMAP_JET)
+
+                # Mediankoordinaten auf das Bild schreiben
+                for instance in pc_dict.values():
+                    median = instance["median"]
+                    # Pixelkoordinaten des Medians approximieren
+                    x_pixel = int((median[0] * self.fx) / median[2] + self.cx)
+                    y_pixel = int((-median[1] * self.fy) / median[2] + self.cy)  # invert Y wieder für Bildkoordinaten
+                    text = f"X:{median[0]:.2f} Y:{median[1]:.2f} Z:{median[2]:.2f}"
+                    cv2.putText(annotated_color_image, text, (x_pixel, y_pixel),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
 
                 # Show results
                 cv2.imshow("Orginal", color_image)
