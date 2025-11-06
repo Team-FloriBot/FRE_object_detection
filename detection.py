@@ -13,7 +13,7 @@ class ObjDetection:
         self.W=640
         self.H=480
 
-        # Initialize a YOLOE model
+        # Initialize a YOLO model
         self.model = YOLO("yolov8n-seg.pt")
 
         # >>> GPU aktivieren, falls verfügbar <<<
@@ -37,7 +37,13 @@ class ObjDetection:
         # Parameters to Fuse Images
         self.align = None
         self.depth_scale = None
-        self.is_initialized = False       
+        self.is_initialized = False
+
+        # initialize depth filters
+        #self.dec_filter = rs.decimation_filter()      
+        self.spatial_filter = rs.spatial_filter()
+        self.temp_filter = rs.temporal_filter()        
+        self.hole_filter = rs.hole_filling_filter()   
 
     # ---------------------------------------------------------
     # RealSense Setup
@@ -96,6 +102,13 @@ class ObjDetection:
         aligned_frames = self.align.process(frames)
         aligned_depth_frame = aligned_frames.get_depth_frame()
         aligned_color_frame = aligned_frames.get_color_frame()
+
+        # appy depth filters 
+        if aligned_depth_frame:
+            #aligned_depth_frame = self.dec_filter.process(aligned_depth_frame)
+            aligned_depth_frame = self.spatial_filter.process(aligned_depth_frame)
+            aligned_depth_frame = self.temp_filter.process(aligned_depth_frame)
+            aligned_depth_frame = self.hole_filter.process(aligned_depth_frame)
 
         if not aligned_depth_frame or not aligned_color_frame:
             return None, None
