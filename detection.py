@@ -6,12 +6,13 @@ import time
 
 
 class ObjDetection:
-    def __init__(self, classes):
+    def __init__(self, classes, conf = 0.5):
         self.W=640
         self.H=480
-
+        self.conf = conf
         # Initialize a YOLOE model
-        self.model = YOLO("yolo11m-seg.pt")
+        # self.model = YOLO("yolo11m-seg.pt")
+        self.model = YOLO("tennisball_v02-seg.pt")
         # Save classes to detect
         self.classes = classes
         self.class_ids = [id for id in self.model.names if self.model.names[id] in classes]
@@ -67,6 +68,8 @@ class ObjDetection:
         if result.masks is not None:
             # Each entry in result.masks.data corresponds to a detected object's mask
             for box, mask_tensor in zip(result.boxes, result.masks.data):
+                if float(box.conf[0]) < self.conf:
+                    continue  # Skip detections below the confidence threshold
                 # Convert the mask tensor to a NumPy array
                 mask = mask_tensor.cpu().numpy()
 
@@ -131,5 +134,5 @@ class ObjDetection:
         self.stop_camera()
 
 if __name__ == "__main__":
-    person_detection = ObjDetection(["Apfel"])
+    person_detection = ObjDetection(["Tennisball"], conf=0.7)
     person_detection.run()
