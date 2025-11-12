@@ -12,12 +12,14 @@ venv/
 .venv311/
 venv311/
 
+.imageset/
+imageset/
 # Jupyter / VSCode
 .ipynb_checkpoints/
 .vscode/
 
 # YOLO / Machine Learning
-runs/
+
 *.pt
 *.pth
 *.onnx
@@ -26,8 +28,3 @@ runs/
 # System
 .DS_Store
 Thumbs.db
-
-#Datasets
-dataset_banane_apfel_orange/
-
-runs/

@@ -12,7 +12,7 @@ class ObjDetection:
         self.conf = conf
         # Initialize a YOLOE model
         # self.model = YOLO("yolo11m-seg.pt")
-        self.model = YOLO("tennisball_v02-seg.pt")
+        self.model = YOLO("tennisball_600_seg_yolo11.pt")
         # Save classes to detect
         self.classes = classes
         self.class_ids = [id for id in self.model.names if self.model.names[id] in classes]
