@@ -9,7 +9,12 @@ import torch
 
 
 class ObjDetection:
-    def __init__(self, classes):
+    def __init__(self, classes,
+                 use_decimation=False,
+                 use_spatial=True,
+                 use_temporal=True,
+                 use_hole_filling=True,
+                 use_mask_filter=True):
         self.W=640
         self.H=480
 
@@ -35,6 +40,13 @@ class ObjDetection:
         self.align = None
         self.depth_scale = None
         self.is_initialized = False
+
+        # Set filters on/off
+        self.use_decimation = use_decimation
+        self.use_spatial = use_spatial
+        self.use_temporal = use_temporal
+        self.use_hole_filling = use_hole_filling
+        self.use_mask_filter = use_mask_filter
 
         # initialize depth filters
         self.dec_filter = rs.decimation_filter()      
@@ -102,10 +114,14 @@ class ObjDetection:
 
         # apply depth filters 
         if aligned_depth_frame:
-            aligned_depth_frame = self.dec_filter.process(aligned_depth_frame)
-            aligned_depth_frame = self.spatial_filter.process(aligned_depth_frame)
-            aligned_depth_frame = self.temp_filter.process(aligned_depth_frame)
-            aligned_depth_frame = self.hole_filter.process(aligned_depth_frame)
+            if self.use_decimation:
+                aligned_depth_frame = self.dec_filter.process(aligned_depth_frame)
+            if self.use_spatial:
+                aligned_depth_frame = self.spatial_filter.process(aligned_depth_frame)
+            if self.use_temporal:
+                aligned_depth_frame = self.temp_filter.process(aligned_depth_frame)
+            if self.use_hole_filling:
+                aligned_depth_frame = self.hole_filter.process(aligned_depth_frame)
 
         if not aligned_depth_frame or not aligned_color_frame:
             return None, None
@@ -175,10 +191,10 @@ class ObjDetection:
             } }
         """
 
-        # Hole Kamera-Parameter
-        profile = self.pipeline.get_active_profile()
-        intrinsics = profile.get_stream(rs.stream.color).as_video_stream_profile().get_intrinsics()
-        fx, fy, cx, cy = intrinsics.fx, intrinsics.fy, intrinsics.ppx, intrinsics.ppy
+        # Kameraparameter der Tiefenkamera (nicht Farbkamera!)
+        intrinsics_depth = self.pipeline.get_active_profile().get_stream(rs.stream.depth)\
+                       .as_video_stream_profile().get_intrinsics()
+        fx, fy, cx, cy = intrinsics_depth.fx, intrinsics_depth.fy, intrinsics_depth.ppx, intrinsics_depth.ppy 
 
         self.cx=cx
         self.cy=cy
@@ -197,9 +213,16 @@ class ObjDetection:
 
             # Maske binär
             mask = (obj["mask"] > 0.5).astype(np.uint8) 
-            # Auflösung der Maske an Auflösung des Tiefenbilds angleichen
+
+            # Maskenfilterung: Morphologie
+            if self.use_mask_filter:
+                kernel = np.ones((3, 3), np.uint8)
+                mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+                mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+
+            # Maske an Tiefenauflösung anpassen
             mask = cv2.resize(mask, (depth_image.shape[1], depth_image.shape[0]),
-                  interpolation=cv2.INTER_NEAREST)
+                          interpolation=cv2.INTER_NEAREST)
 
             # Pixelkoordinaten der Maske
             ys, xs = np.where(mask > 0)
@@ -212,7 +235,7 @@ class ObjDetection:
             # Tiefenwerte in Meter
             z = depth_image[ys, xs].astype(float) * self.depth_scale
             
-            # Tiefenfilter
+            # Tiefenfilter: gültige Werte
             valid = (z > 0.1) & (z < 10.0) & (~np.isnan(z))
             xs, ys, z = xs[valid], ys[valid], z[valid]
             if len(xs) == 0:
