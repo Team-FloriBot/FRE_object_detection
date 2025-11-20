@@ -27,9 +27,6 @@ class ObjDetection:
         self.classes = classes
         self.class_ids = [id for id in self.model.names if self.model.names[id] in classes]
 
-        # Initialize webcam
-        # self.cap = cv2.VideoCapture(0)
-
         # Parameter to initialize RealSense 
         self.pipeline = None
         self.config = None
@@ -40,7 +37,7 @@ class ObjDetection:
         self.is_initialized = False
 
         # initialize depth filters
-        #self.dec_filter = rs.decimation_filter()      
+        self.dec_filter = rs.decimation_filter()      
         self.spatial_filter = rs.spatial_filter()
         self.temp_filter = rs.temporal_filter()        
         self.hole_filter = rs.hole_filling_filter()   
@@ -103,9 +100,9 @@ class ObjDetection:
         aligned_depth_frame = aligned_frames.get_depth_frame()
         aligned_color_frame = aligned_frames.get_color_frame()
 
-        # appy depth filters 
+        # apply depth filters 
         if aligned_depth_frame:
-            #aligned_depth_frame = self.dec_filter.process(aligned_depth_frame)
+            aligned_depth_frame = self.dec_filter.process(aligned_depth_frame)
             aligned_depth_frame = self.spatial_filter.process(aligned_depth_frame)
             aligned_depth_frame = self.temp_filter.process(aligned_depth_frame)
             aligned_depth_frame = self.hole_filter.process(aligned_depth_frame)
@@ -177,6 +174,7 @@ class ObjDetection:
                 "median": array([X_m, Y_m, Z_m])
             } }
         """
+
         # Hole Kamera-Parameter
         profile = self.pipeline.get_active_profile()
         intrinsics = profile.get_stream(rs.stream.color).as_video_stream_profile().get_intrinsics()
@@ -199,6 +197,9 @@ class ObjDetection:
 
             # Maske binär
             mask = (obj["mask"] > 0.5).astype(np.uint8) 
+            # Auflösung der Maske an Auflösung des Tiefenbilds angleichen
+            mask = cv2.resize(mask, (depth_image.shape[1], depth_image.shape[0]),
+                  interpolation=cv2.INTER_NEAREST)
 
             # Pixelkoordinaten der Maske
             ys, xs = np.where(mask > 0)
@@ -233,14 +234,6 @@ class ObjDetection:
              # Median berechnen
             median_xyz = np.median(points, axis=0)         
 
-            # # Ergebnisse sammeln
-            # if label not in point_cloud_results:
-            #     point_cloud_results[label] = {"points": points, "colors": colors}
-            # else:
-            #     # Wenn mehrere Instanzen desselben Typs existieren
-            #     point_cloud_results[label]["points"] = np.vstack((point_cloud_results[label]["points"], points))
-            #     point_cloud_results[label]["colors"] = np.vstack((point_cloud_results[label]["colors"], colors))
-                    # Eintrag in point_cloud_results
             point_cloud_results[instance_counter] = {
                 "label": label,
                 "points": points,
