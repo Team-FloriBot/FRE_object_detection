@@ -2,8 +2,6 @@ from ultralytics import YOLO
 import cv2
 import numpy as np
 import pyrealsense2 as rs
-import time
-import matplotlib.pyplot as plt           # 2D plotting library producing publication quality figures
 import open3d as o3d
 import torch
 
@@ -19,17 +17,18 @@ class ObjDetection:
         self.W=640
         self.H=480
 
+
         self.conf =conf
 
         # Initialize a YOLO model
         self.model = YOLO("tennisball_600_seg_yolo11.pt")
 
-        # >>> GPU aktivieren, falls verfügbar <<<
+        # >>> Enable GPU, if available <<<
         if torch.cuda.is_available():
             self.model.to('cuda')
-            print("YOLOv8 läuft auf der GPU (CUDA aktiviert).")
+            print("YOLOv8 runs on the GPU (CUDA enabled).")
         else:
-            print("Keine GPU gefunden, YOLO läuft auf der CPU.")
+            print("No GPU found, YOLO is running on the CPU.")
 
         # Save classes to detect
         self.classes = classes
@@ -52,7 +51,9 @@ class ObjDetection:
         self.use_mask_filter = use_mask_filter
 
         # initialize depth filters
-        self.dec_filter = rs.decimation_filter()      
+        self.dec_filter = rs.decimation_filter()
+        self.dec_magnitude = 2
+        self.dec_filter.set_option(rs.option.filter_magnitude, self.dec_magnitude)  # decimation of 2    
         self.spatial_filter = rs.spatial_filter()
         self.temp_filter = rs.temporal_filter()        
         self.hole_filter = rs.hole_filling_filter()   
@@ -62,7 +63,7 @@ class ObjDetection:
     # ---------------------------------------------------------
     def initialize_realsense(self, depth_resolution=(640, 480), color_resolution=(640, 480), fps=30):
         """
-        Initialisiert RealSense-Pipeline und startet Streaming.
+        Initialises the RealSense pipeline and starts streaming.
         """
         # Create pipeline and config
         self.pipeline = rs.pipeline()
@@ -184,8 +185,8 @@ class ObjDetection:
     # ---------------------------------------------------------
     def fuse(self, color_image, depth_image, obj_masks):
         """
-        Erzeugt Punktwolken aus Farb- und Tiefenbild für jedes erkannte Objekt.
-        Gibt ein Dictionary zurück:
+        Generates point clouds from colour and depth images for each detected object.
+        Returns a dictionary:
             { label_index: {
                 "label": str,
                 "points": Nx3,
@@ -194,7 +195,7 @@ class ObjDetection:
             } }
         """
 
-        # Kameraparameter der Tiefenkamera (nicht Farbkamera!)
+        # Camera parameters of the depth camera (not colour camera!)
         intrinsics_depth = self.pipeline.get_active_profile().get_stream(rs.stream.depth)\
                        .as_video_stream_profile().get_intrinsics()
         fx, fy, cx, cy = intrinsics_depth.fx, intrinsics_depth.fy, intrinsics_depth.ppx, intrinsics_depth.ppy 
@@ -206,7 +207,7 @@ class ObjDetection:
 
         point_cloud_results = {}
 
-        # Maske für das Tiefenbild initialisieren
+        # Initialise mask for depth image
         depth_masked = np.zeros_like(depth_image, dtype=depth_image.dtype)
 
         instance_counter = 0  # eindeutige ID für jede Instanz
@@ -214,50 +215,54 @@ class ObjDetection:
         for obj in obj_masks:
             label = obj["class"]
 
-            # Maske binär
+            # Binary mask
             mask = (obj["mask"] > 0.5).astype(np.uint8) 
 
-            # Maskenfilterung: Morphologie
+            # Mask filtering: Morphology
             if self.use_mask_filter:
                 kernel = np.ones((3, 3), np.uint8)
                 mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
                 mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
 
-            # Maske an Tiefenauflösung anpassen
+            # Adjust mask to depth resolution
             mask = cv2.resize(mask, (depth_image.shape[1], depth_image.shape[0]),
                           interpolation=cv2.INTER_NEAREST)
+            
+            # Adjust colour image to depth resolution
+            color_image = cv2.resize(color_image, (depth_image.shape[1], depth_image.shape[0]),
+                          interpolation=cv2.INTER_NEAREST)
 
-            # Pixelkoordinaten der Maske
+            # Pixel coordinates of the mask
             ys, xs = np.where(mask > 0)
             if len(xs) == 0:
                 continue
 
-            # Maskiertes Tiefenbild füllen
+            # Fill masked depth image
             depth_masked[ys, xs] = depth_image[ys, xs]
 
-            # Tiefenwerte in Meter
+            # Depth values in metres
             z = depth_image[ys, xs].astype(float) * self.depth_scale
             
-            # Tiefenfilter: gültige Werte
+            # Depth filter: valid values
             valid = (z > 0.1) & (z < 10.0) & (~np.isnan(z))
             xs, ys, z = xs[valid], ys[valid], z[valid]
             if len(xs) == 0:
                 continue
 
-            # 3D-Koordinaten (Kamera-Koordinatensystem)
+            # 3D coordinates (camera coordinate system)
             X = (xs - cx) * z / fx
             Y = (ys - cy) * z / fy
             Z = z
 
-            # invertierung für Open 3d
+            # inversion for Open 3D
             Y=-Y
 
             points = np.stack((X, Y, Z), axis=-1)
 
-            # Farbwerte an denselben Pixeln holen (BGR → RGB)
+            # Get colour values at the same pixels (BGR → RGB)
             colors = color_image[ys, xs][:, ::-1] / 255.0
 
-             # Median berechnen
+             # Calculate median
             median_xyz = np.median(points, axis=0)         
 
             point_cloud_results[instance_counter] = {
@@ -277,7 +282,7 @@ class ObjDetection:
     # ---------------------------------------------------------
     def stop_camera(self):
         """
-        Stoppt die RealSense-Pipeline.
+        Stops the RealSense pipeline.
         """
         if self.pipeline:
             self.pipeline.stop()
@@ -285,22 +290,22 @@ class ObjDetection:
 
     def run(self):
         """
-        Hauptschleife: Frames lesen, fusionieren, anzeigen.
-        Beenden mit 'q'.
+        Main loop: Read, merge and display frames.
+        Exit with 'q'.
         """
         if not self.is_initialized:
             self.initialize_realsense()
 
         print("Starting camera stream... Press 'q' to quit.")
 
-        # Open3D Visualizer einmalig starten
+        # Start Open3D Visualizer once
         axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5, origin=[0,0,0])
         vis = o3d.visualization.Visualizer()
         vis.create_window("Live 3D Point Cloud", width=900, height=700)
         pcd = o3d.geometry.PointCloud()
    
-        vis.add_geometry(pcd)   # deine Punktwolke
-        vis.add_geometry(axis)  # Achsen hinzufügen
+        vis.add_geometry(pcd)   # point cloud
+        vis.add_geometry(axis)  # Add axes
 
         geom_added = True
 
@@ -318,18 +323,18 @@ class ObjDetection:
                 # Detect Objects
                 obj_masks, annotated_color_image = self.detect_obj(color_image)
 
-                # Fuse RGB + Depth zu Punktwolken
+                # Fuse RGB + Depth to point clouds
                 pc_dict, depth_image_masked = self.fuse(color_image, depth_image, obj_masks)
 
-                # Makiertes Tiefenbild
+                # Marked depth image
                 depth_masked_normalized = cv2.normalize(depth_image_masked, None, 0,255,cv2.NORM_MINMAX)
                 depth_masked_normalized= depth_masked_normalized.astype(np.uint8)
                 depth_image_masked_color =cv2.applyColorMap(depth_masked_normalized, cv2.COLORMAP_JET)
 
-                # Mediankoordinaten auf das Bild schreiben
+                # Write median coordinates on the image
                 for instance in pc_dict.values():
                     median = instance["median"]
-                    # Pixelkoordinaten des Medians approximieren
+                    # Approximate pixel coordinates of the median
                     x_pixel = int((median[0] * self.fx) / median[2] + self.cx)
                     y_pixel = int((-median[1] * self.fy) / median[2] + self.cy)  # invert Y wieder für Bildkoordinaten
                     text = f"X:{median[0]:.2f} Y:{median[1]:.2f} Z:{median[2]:.2f}"
