@@ -14,12 +14,15 @@ class ObjDetection:
                  use_spatial=True,
                  use_temporal=True,
                  use_hole_filling=True,
-                 use_mask_filter=True):
+                 use_mask_filter=True,
+                 conf=0.5):
         self.W=640
         self.H=480
 
+        self.conf =conf
+
         # Initialize a YOLO model
-        self.model = YOLO("yolov8n-seg.pt")
+        self.model = YOLO("tennisball_600_seg_yolo11.pt")
 
         # >>> GPU aktivieren, falls verfügbar <<<
         if torch.cuda.is_available():
@@ -141,7 +144,7 @@ class ObjDetection:
         Output annotated_image, frame_mask --> classes, mask
         """""""""""""""""""""""""""
 
-        results = self.model.predict(color_image, classes=self.class_ids)
+        results = self.model.predict(color_image, classes=self.class_ids, conf=self.conf)
 
         annotated_image = color_image.copy()
 
@@ -368,6 +371,6 @@ class ObjDetection:
             self.stop_camera()
 
 if __name__ == "__main__":
-    test_object=ObjDetection(["person"])
+    test_object=ObjDetection(["Tennisball"], conf=0.8)
     test_object.run()
  
