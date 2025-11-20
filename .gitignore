@@ -20,7 +20,9 @@ imageset/
 
 # YOLO / Machine Learning
 
-*.pt
+yolo11m-seg.pt
+yolo11n-seg.pt
+yolo11n.pt
 *.pth
 *.onnx
 *.log
