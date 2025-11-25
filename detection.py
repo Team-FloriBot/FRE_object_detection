@@ -12,11 +12,12 @@ class ObjDetection:
                  use_spatial=True,
                  use_temporal=True,
                  use_hole_filling=True,
-                 use_mask_filter=True,
+                 use_mask_filter=False,
                  conf=0.5):
-        self.W=640
-        self.H=480
-
+        # self.W=640
+        # self.H=480
+        self.W=1920 
+        self.H=1080
 
         self.conf =conf
 
@@ -61,7 +62,7 @@ class ObjDetection:
     # ---------------------------------------------------------
     # RealSense Setup
     # ---------------------------------------------------------
-    def initialize_realsense(self, depth_resolution=(640, 480), color_resolution=(640, 480), fps=30):
+    def initialize_realsense(self, depth_resolution=(1280, 720), color_resolution=(1280, 720), fps=30):
         """
         Initialises the RealSense pipeline and starts streaming.
         """
@@ -144,10 +145,11 @@ class ObjDetection:
         Input color_image
         Output annotated_image, frame_mask --> classes, mask
         """""""""""""""""""""""""""
+        print(color_image.shape)
+        results = self.model.predict(color_image, classes=self.class_ids, conf=self.conf, imgsz=color_image.shape[:2])
+        
 
-        results = self.model.predict(color_image, classes=self.class_ids, conf=self.conf)
-
-        annotated_image = color_image.copy()
+        annotated_image = None
 
         obj_masks = []
 
@@ -159,9 +161,12 @@ class ObjDetection:
             for box, mask_tensor in zip(result.boxes, result.masks.data):
                 # Convert the mask tensor to a NumPy array
                 mask = mask_tensor.cpu().numpy()
-
+                print(mask.shape)
                 # Convert mask values from [0, 1] to [0, 255] for visualization
                 mask_uint8 = (mask * 255).astype("uint8")
+
+                annotated_image = cv2.resize(color_image, (mask.shape[1], mask.shape[0]),
+                          interpolation=cv2.INTER_NEAREST)
 
                 # Create a blue overlay (BGR color order)
                 color_mask = np.zeros_like(annotated_image)
@@ -177,7 +182,8 @@ class ObjDetection:
                     "mask": mask
                 })
 
-
+        if annotated_image is None:
+            annotated_image=color_image.copy()
         return obj_masks, annotated_image
 
     # ---------------------------------------------------------
