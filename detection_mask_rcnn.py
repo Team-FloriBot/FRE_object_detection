@@ -80,11 +80,20 @@ class ObjDetection:
         self.use_hole_filling = use_hole_filling
         self.use_mask_filter = use_mask_filter
 
-        # Filter initialisieren
+        # initialize depth filters
         self.dec_filter = rs.decimation_filter()
+        self.dec_magnitude = 2
+        self.dec_filter.set_option(rs.option.filter_magnitude, self.dec_magnitude)  # decimation of 2    
+        self.temp_filter = rs.temporal_filter()        
+        self.hole_filter = rs.hole_filling_filter()   
+        self.hole_filter.set_option(rs.option.holes_fill, 2) # Change mode to "Nearest" (prevents values from being smudged), 0 = fill_from_left, 1 = farest_from_around, 2 = nearest_from_around
+        # set spatial filter so that it does not smooth edges
         self.spatial_filter = rs.spatial_filter()
-        self.temp_filter = rs.temporal_filter()
-        self.hole_filter = rs.hole_filling_filter()
+        self.spatial_filter.set_option(rs.option.filter_magnitude, 2)
+        self.spatial_filter.set_option(rs.option.filter_smooth_alpha, 0.5)
+        self.spatial_filter.set_option(rs.option.filter_smooth_delta, 20) # Wichtig: Hohes Delta verhindert Glätten über Kanten hinweg
+        self.spatial_filter.set_option(rs.option.holes_fill, 0) # Löcher nicht durch den Spatial Filter füllen lassen
+
 
 
     # ---------------------------------------------------------
@@ -262,11 +271,14 @@ class ObjDetection:
             # Maske binär
             mask = (obj["mask"] > 0.5).astype(np.uint8) 
 
-            # Maskenfilterung: Morphologie
+            # Mask filtering: Morphology, close/open
             if self.use_mask_filter:
-                kernel = np.ones((3, 3), np.uint8)
-                mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-                mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+                kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+                mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_close)
+
+            # Mask filtering: Morphology, erode, We essentially cut away the "unsafe" edge of the ball.
+                kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+                mask = cv2.erode(mask, kernel_erode, iterations=2)
 
             # Maske an Tiefenauflösung anpassen
             mask = cv2.resize(mask, (depth_image.shape[1], depth_image.shape[0]),
@@ -303,7 +315,18 @@ class ObjDetection:
             colors = color_image[ys, xs][:, ::-1] / 255.0
 
              # Median berechnen
-            median_xyz = np.median(points, axis=0)         
+            median_xyz = np.median(points, axis=0) 
+
+            # Z-Filtering
+            z_median = median_xyz[2]
+            z_values = points[:, 2]
+            mask_z = np.abs(z_values - z_median) < 0.05 # allow only points within tolerance
+            points = points[mask_z]
+            colors = colors[mask_z]      
+            if len(points) == 0:
+                continue
+            median_xyz = np.median(points, axis=0) # recalculate median   
+        
 
             point_cloud_results[instance_counter] = {
                 "label": label,

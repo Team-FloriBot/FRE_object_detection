@@ -147,7 +147,7 @@ class ObjDetection:
         Input color_image
         Output annotated_image, frame_mask --> classes, mask
         """""""""""""""""""""""""""
-        print(color_image.shape)
+        #print(color_image.shape)
         results = self.model.predict(color_image, classes=self.class_ids, conf=self.conf, imgsz=color_image.shape[:2])
         
         annotated_image = color_image.copy()
