@@ -8,16 +8,12 @@ import torch
 
 class ObjDetection:
     def __init__(self, classes,
-                 use_decimation=False,
-                 use_spatial=True,
-                 use_temporal=True,
-                 use_hole_filling=True,
-                 use_mask_filter=False,
+                 use_decimation=False, # verringert Auflösung, Präzisionsverlust an den Kanten, Maske und Tiefe passen nicht mehr pixelgenau übereinander
+                 use_spatial=True, # glättet Kanten, gut für Wände, aber schlecht für frei schwebende Objekte, an Kanten berechnet er einen Mittelwert, kann aber angepasst werden, dass er Kanten nicht verwischt
+                 use_temporal=False, # Ungenauigkeit, wenn sich der Ball bewegt
+                 use_hole_filling=True, # Füllt fehlende Daten am Rand mit geschätzten Werten
+                 use_mask_filter=True,
                  conf=0.5):
-        # self.W=640
-        # self.H=480
-        self.W=1920 
-        self.H=1080
 
         self.conf =conf
 
@@ -55,14 +51,20 @@ class ObjDetection:
         self.dec_filter = rs.decimation_filter()
         self.dec_magnitude = 2
         self.dec_filter.set_option(rs.option.filter_magnitude, self.dec_magnitude)  # decimation of 2    
-        self.spatial_filter = rs.spatial_filter()
         self.temp_filter = rs.temporal_filter()        
         self.hole_filter = rs.hole_filling_filter()   
+        self.hole_filter.set_option(rs.option.holes_fill, 2) # Change mode to "Nearest" (prevents values from being smudged), 0 = fill_from_left, 1 = farest_from_around, 2 = nearest_from_around
+        # set spatial filter so that it does not smooth edges
+        self.spatial_filter = rs.spatial_filter()
+        self.spatial_filter.set_option(rs.option.filter_magnitude, 2)
+        self.spatial_filter.set_option(rs.option.filter_smooth_alpha, 0.5)
+        self.spatial_filter.set_option(rs.option.filter_smooth_delta, 20) # Wichtig: Hohes Delta verhindert Glätten über Kanten hinweg
+        self.spatial_filter.set_option(rs.option.holes_fill, 0) # Löcher nicht durch den Spatial Filter füllen lassen
 
     # ---------------------------------------------------------
     # RealSense Setup
     # ---------------------------------------------------------
-    def initialize_realsense(self, depth_resolution=(1280, 720), color_resolution=(1280, 720), fps=30):
+    def initialize_realsense(self, depth_resolution=(640, 480), color_resolution=(640, 480), fps=30):
         """
         Initialises the RealSense pipeline and starts streaming.
         """
@@ -148,8 +150,7 @@ class ObjDetection:
         print(color_image.shape)
         results = self.model.predict(color_image, classes=self.class_ids, conf=self.conf, imgsz=color_image.shape[:2])
         
-
-        annotated_image = None
+        annotated_image = color_image.copy()
 
         obj_masks = []
 
@@ -161,15 +162,22 @@ class ObjDetection:
             for box, mask_tensor in zip(result.boxes, result.masks.data):
                 # Convert the mask tensor to a NumPy array
                 mask = mask_tensor.cpu().numpy()
-                print(mask.shape)
+                #print(mask.shape)
+
+                if mask.shape != annotated_image.shape[:2]:
+                    mask = cv2.resize(mask, (annotated_image.shape[1], annotated_image.shape[0]),
+                                      interpolation=cv2.INTER_NEAREST)
+
                 # Convert mask values from [0, 1] to [0, 255] for visualization
                 mask_uint8 = (mask * 255).astype("uint8")
 
-                annotated_image = cv2.resize(color_image, (mask.shape[1], mask.shape[0]),
-                          interpolation=cv2.INTER_NEAREST)
-
                 # Create a blue overlay (BGR color order)
                 color_mask = np.zeros_like(annotated_image)
+
+                # ensure maks scale has correct size
+                if mask_uint8.shape != color_mask.shape[:2]:
+                     print(f"Warnung: Maskenform {mask_uint8.shape} passt nicht zu Bildform {color_mask.shape[:2]}. Skalierung in 'detect_obj' wird durchgeführt.")
+                     mask_uint8 = cv2.resize(mask_uint8, (color_mask.shape[1], color_mask.shape[0]), interpolation=cv2.INTER_NEAREST)
                 color_mask[:, :, 0] = mask_uint8  # Fill blue channel
 
                 # Blend the mask overlay with the original image
@@ -224,11 +232,14 @@ class ObjDetection:
             # Binary mask
             mask = (obj["mask"] > 0.5).astype(np.uint8) 
 
-            # Mask filtering: Morphology
+            # Mask filtering: Morphology, close/open
             if self.use_mask_filter:
-                kernel = np.ones((3, 3), np.uint8)
-                mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-                mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+                kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+                mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_close)
+
+            # Mask filtering: Morphology, erode, We essentially cut away the "unsafe" edge of the ball.
+                kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+                mask = cv2.erode(mask, kernel_erode, iterations=2)
 
             # Adjust mask to depth resolution
             mask = cv2.resize(mask, (depth_image.shape[1], depth_image.shape[0]),
@@ -269,7 +280,17 @@ class ObjDetection:
             colors = color_image[ys, xs][:, ::-1] / 255.0
 
              # Calculate median
-            median_xyz = np.median(points, axis=0)         
+            median_xyz = np.median(points, axis=0)
+
+            # Z-Filtering
+            z_median = median_xyz[2]
+            z_values = points[:, 2]
+            mask_z = np.abs(z_values - z_median) < 0.05 # allow only points within tolerance
+            points = points[mask_z]
+            colors = colors[mask_z]      
+            if len(points) == 0:
+                continue
+            median_xyz = np.median(points, axis=0) # recalculate median   
 
             point_cloud_results[instance_counter] = {
                 "label": label,
@@ -382,6 +403,6 @@ class ObjDetection:
             self.stop_camera()
 
 if __name__ == "__main__":
-    test_object=ObjDetection(["Tennisball"], conf=0.8)
+    test_object=ObjDetection(["Tennisball"], conf=0.5)
     test_object.run()
  

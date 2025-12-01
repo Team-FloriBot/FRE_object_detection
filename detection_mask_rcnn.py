@@ -24,7 +24,7 @@ class ObjDetection:
         # MASK R-CNN LADEN
         # ------------------------------
         print("Lade Mask R-CNN Gewichte ...")
-        weights = torch.load("mask_rcnn_final.pth", map_location="cpu")
+        weights = torch.load("mask_rcnn_final_2.pth", map_location="cpu")
 
         # Anzahl Klassen aus Gewichten bestimmen
         num_classes = weights["roi_heads.box_predictor.cls_score.weight"].shape[0]
@@ -416,6 +416,6 @@ class ObjDetection:
             self.stop_camera()
 
 if __name__ == "__main__":
-    test_object=ObjDetection(["Tennisball"], conf=0.8)
+    test_object=ObjDetection(["Tennisball"], conf=0.7)
     test_object.run()
  
