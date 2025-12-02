@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 
 # === 🔧 Pfad zu deinem exportierten Datensatz ===
-base_dir = Path("imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11")
+base_dir = Path("imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11")
 
 # === Unterordner, die geprüft werden sollen ===
 subdirs = ["train/labels", "valid/labels", "test/labels"]  # ggf. anpassen
@@ -30,7 +30,7 @@ def main():
     # 1) Vortrainiertes YOLO11-Seg-Modell laden
     model = YOLO("yolo11m-seg.pt")  # „m“ (medium) liefert meist bessere Ergebnisse als „n“ (nano)
     # 2) Trainingsparameter
-    data_yaml = "imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/data.yaml"
+    data_yaml = "imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/data.yaml"
 
     results = model.train(
         data=data_yaml,
@@ -38,7 +38,7 @@ def main():
         imgsz=640,
         batch=8,
         device="0",
-        name="tennisball_600_seg_yolo11",
+        name="tennisball_600_seg_yolo11_v02",
         exist_ok=True,
 
         hsv_h=0.015, hsv_s=0.4, hsv_v=0.3,
@@ -62,7 +62,7 @@ def main():
     #model.val(data="test_data.yaml")
 
     # 4) Bestes Modell speichern
-    model.save("tennisball_600_seg_yolo11.pt")
+    model.save("tennisball_600_seg_yolo11_v02.pt")
 
 if __name__ == "__main__":
     
