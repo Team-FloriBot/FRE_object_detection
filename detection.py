@@ -18,7 +18,7 @@ class ObjDetection:
         self.conf =conf
 
         # Initialize a YOLO model
-        self.model = YOLO("tennisball_600_seg_yolo11.pt")
+        self.model = YOLO("tennisball_600_seg_yolo11_v02.pt")
 
         # >>> Enable GPU, if available <<<
         if torch.cuda.is_available():
@@ -269,6 +269,7 @@ class ObjDetection:
             # 3D coordinates (camera coordinate system)
             X = (xs - cx) * z / fx
             Y = (ys - cy) * z / fy
+            #Z= np.sqrt(X**2+Y**2)
             Z = z
 
             # inversion for Open 3D
