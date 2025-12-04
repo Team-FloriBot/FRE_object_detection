@@ -6,15 +6,17 @@ import cv2
 import pyrealsense2 as rs
 import open3d as o3d
 from ultralytics import YOLO
+import tracking
 
 class ObjDetection:
     def __init__(self, classes,
-                 model_type="rcnn",  # to select model ('yolo' or 'rcnn')
+                 model_type="yolo",  # to select model ('yolo' or 'rcnn')
                  use_decimation=False,  # Decreases resolution, loss of precision at edges
                  use_spatial=True,      # Smooths edges, good for walls, bad for floating objects (can be tuned)
                  use_temporal=False,    # Can cause inaccuracy if the object moves fast
                  use_hole_filling=True, # Fills missing data at edges with estimated values
                  use_mask_filter=True,
+                 localization_factor=False,
                  conf=0.5):
 
         self.W = 640
@@ -22,7 +24,13 @@ class ObjDetection:
         self.conf = conf
         self.model_type = model_type.lower()
         self.classes = classes
-        
+
+        # initialize tracker for temporal mask filtering
+        min_hits = 3
+        max_dist = 80 # obj are only allowed to move 80 pixels per frame
+        max_missing=5 # time to live of a mask
+        self.tracker = tracking.ObjectTracker(max_missing=max_missing, min_hits=min_hits, max_dist=max_dist)
+
         # ---------------------------------------------------------
         # Model Selection & Initialization
         # ---------------------------------------------------------
@@ -44,7 +52,7 @@ class ObjDetection:
             print("Initializing Mask R-CNN Model...")
             print("Loading Mask R-CNN weights...")
             # Load specific weights file
-            weights = torch.load("mask_rcnn_final_2.pth", map_location="cpu")
+            weights = torch.load("mask_rcnn_final_3.pth", map_location="cpu")
 
             # Determine number of classes from weights
             num_classes = weights["roi_heads.box_predictor.cls_score.weight"].shape[0]
@@ -115,10 +123,10 @@ class ObjDetection:
 
         # Set spatial filter so that it does not smooth edges
         self.spatial_filter = rs.spatial_filter()
-        self.spatial_filter.set_option(rs.option.filter_magnitude, 2)
-        self.spatial_filter.set_option(rs.option.filter_smooth_alpha, 0.5)
+        self.spatial_filter.set_option(rs.option.filter_magnitude, 2) # amount of iterations, medium smoothing strength
+        self.spatial_filter.set_option(rs.option.filter_smooth_alpha, 0.5) # controls smoothing  strength,high value smooth edges
         self.spatial_filter.set_option(rs.option.filter_smooth_delta, 20) # Important: High delta prevents smoothing across edges
-        self.spatial_filter.set_option(rs.option.holes_fill, 0) # Do not fill holes via spatial filter
+        self.spatial_filter.set_option(rs.option.holes_fill, 0) # Do not fill holes via spatial filter, hole filling fiter does this
 
     # ---------------------------------------------------------
     # RealSense Setup
@@ -208,11 +216,12 @@ class ObjDetection:
     def _detect_yolo(self, color_image):
         results = self.model.predict(color_image, classes=self.class_ids, conf=self.conf, imgsz=color_image.shape[:2], verbose=False)
         annotated_image = color_image.copy()
-        obj_masks = []
+        raw_detections = []
 
         result = results[0]
 
         if result.masks is not None:
+            mask_counter = 0
             for box, mask_tensor in zip(result.boxes, result.masks.data):
                 # Convert mask tensor to numpy
                 mask = mask_tensor.cpu().numpy()
@@ -222,70 +231,72 @@ class ObjDetection:
                     mask = cv2.resize(mask, (annotated_image.shape[1], annotated_image.shape[0]),
                                       interpolation=cv2.INTER_NEAREST)
 
-                # Visualization (Blue Overlay)
-                mask_uint8 = (mask * 255).astype("uint8")
-                color_mask = np.zeros_like(annotated_image)
-                
-                if mask_uint8.shape != color_mask.shape[:2]:
-                      mask_uint8 = cv2.resize(mask_uint8, (color_mask.shape[1], color_mask.shape[0]), interpolation=cv2.INTER_NEAREST)
-                
-                color_mask[:, :, 0] = mask_uint8  # Blue channel
-                annotated_image = cv2.addWeighted(annotated_image, 1, color_mask, 0.5, 0)
-
-                obj_masks.append({
+                # prepare object tracker
+                det_entry = {
                     "class": self.model.names[int(box.cls[0])],
-                    "mask": mask
-                })
+                    "mask": mask,
+                    "center": self._get_center(mask) # Mittelpunkt berechnen
+                }
+                raw_detections.append(det_entry)
+        
+        confirmed_objects = self.tracker.update(raw_detections)
 
-        return obj_masks, annotated_image
+        # Visualization only for confirmed objects                
+        for obj in confirmed_objects:
+            mask = obj["mask"]
+
+            # Visualization (Blue Overlay)
+            mask_uint8 = (mask * 255).astype("uint8")
+            color_mask = np.zeros_like(annotated_image)
+            color_mask[:, :, 0] = mask_uint8
+
+            annotated_image = cv2.addWeighted(annotated_image, 1, color_mask, 0.5, 0)
+
+        return confirmed_objects, annotated_image
 
     # ---------------------------------------------------------
     # R-CNN Implementation
     # ---------------------------------------------------------
     def _detect_rcnn(self, color_image):
-        # Convert image to tensor
         img_tensor = self.transform(color_image)
         if torch.cuda.is_available():
             img_tensor = img_tensor.to("cuda")
 
-        # Inference
         with torch.no_grad():
             outputs = self.model([img_tensor])[0]
 
         scores = outputs["scores"].cpu().numpy()
-        boxes = outputs["boxes"].cpu().numpy()
-        masks = outputs["masks"].cpu().numpy()  # (N,1,H,W)
+        masks = outputs["masks"].cpu().numpy()
         labels = outputs["labels"].cpu().numpy()
 
         annotated_image = color_image.copy()
-        obj_masks = []
+        raw_detections = []
 
-        for score, box, mask, label in zip(scores, boxes, masks, labels):
-            if score < self.conf:
-                continue
+        for score, mask, label in zip(scores, masks, labels):
+            if score < self.conf: continue
+            if len(self.class_ids) > 0 and label not in self.class_ids: continue
 
-            # Check against selected classes
-            if len(self.class_ids) > 0 and label not in self.class_ids:
-                continue
-
-            # Remove channel dim (1,H,W) -> (H,W)
             mask = mask[0]
-
-            # Binary mask
             binary_mask = (mask > 0.5).astype("uint8")
+            
+            det_entry = {
+                "class": self.id_to_name[label],
+                "mask": binary_mask,
+                "center": self._get_center(binary_mask)
+            }
+            raw_detections.append(det_entry)
 
-            # Visualization
-            mask_uint8 = (binary_mask * 255).astype("uint8")
+        # --- TRACKER UPDATE ---
+        confirmed_objects = self.tracker.update(raw_detections)
+
+        # --- VISUALISIERUNG ---
+        for obj in confirmed_objects:
+            mask_uint8 = (obj["mask"] * 255).astype("uint8")
             color_mask = np.zeros_like(annotated_image)
-            color_mask[:, :, 0] = mask_uint8  # Blue channel
+            color_mask[:, :, 0] = mask_uint8
             annotated_image = cv2.addWeighted(annotated_image, 1, color_mask, 0.5, 0)
 
-            obj_masks.append({
-                "class": self.id_to_name[label],
-                "mask": binary_mask
-            })
-
-        return obj_masks, annotated_image
+        return confirmed_objects, annotated_image
 
     # ---------------------------------------------------------
     # Fusion (Common for both models)
@@ -344,10 +355,10 @@ class ObjDetection:
             depth_masked[ys, xs] = depth_image[ys, xs]
 
             # Depth values in meters
-            z = depth_image[ys, xs].astype(float) * self.depth_scale
+            z = depth_image[ys, xs].astype(float) * self.depth_scale # depth parallel to optical axis
             
             # Depth filter: valid values
-            valid = (z > 0.1) & (z < 10.0) & (~np.isnan(z))
+            valid = (z > 0.1) & (z < 20.0) & (~np.isnan(z))
             xs, ys, z = xs[valid], ys[valid], z[valid]
             if len(xs) == 0:
                 continue
@@ -398,6 +409,21 @@ class ObjDetection:
         if self.pipeline:
             self.pipeline.stop()
             print("RealSense pipeline stopped.")
+
+    # --- HELP FUNCTION: Calculate the centre point of the mask ---
+    def _get_center(self, mask):
+        M = cv2.moments(mask)
+        if M["m00"] != 0:
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+        else:
+            # Fallback if mask is empty or only noise
+            ys, xs = np.where(mask > 0)
+            if len(xs) > 0:
+                cX, cY = int(np.mean(xs)), int(np.mean(ys))
+            else:
+                cX, cY = 0, 0
+        return (cX, cY)
 
     # ---------------------------------------------------------
     # Main Loop
