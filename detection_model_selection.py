@@ -10,36 +10,56 @@ import tracking
 
 class ObjDetection:
     def __init__(self, classes,
-                 model_type="yolo",  # to select model ('yolo' or 'rcnn')
-                 use_decimation=False,  # Decreases resolution, loss of precision at edges
-                 use_spatial=True,      # Smooths edges, good for walls, bad for floating objects (can be tuned)
-                 use_temporal=False,    # Can cause inaccuracy if the object moves fast
-                 use_hole_filling=True, # Fills missing data at edges with estimated values
-                 use_mask_filter=True,
-                 use_localization_factor=True,
+                 model_type="rcnn",          # Select model: 'yolo' or 'rcnn'
+                 use_decimation=False,       # Decreases resolution, loss of precision at edges
+                 use_spatial=True,           # Smooths edges (good for walls, bad for small floating objects)
+                 use_temporal=False,         # Filters over time (can cause ghosting if objects move fast)
+                 use_hole_filling=True,      # Fills missing depth data with estimated values
+                 use_mask_filter=True,       # Post-processing of segmentation masks (erode/dilate)
+                 use_localization_factor=True, # Apply correction factors to 3D coordinates
                  conf=0.5):
 
+        # select frame resolution
         self.W = 640
         self.H = 480
-        self.conf = conf
-        self.model_type = model_type.lower()
-        self.classes = classes
 
-        # initialize tracker for temporal mask filtering, reduces also noise in localization
-        min_hits = 20
-        max_dist = 80 # obj are only allowed to move 80 pixels per frame
-        max_missing=3 # time to live of a mask
-        self.tracker = tracking.ObjectTracker(max_missing=max_missing, min_hits=min_hits, max_dist=max_dist)
+        # --- Tracking Configuration ---
+        # Initialize tracker for temporal mask filtering; reduces noise in localization
+        if model_type == "yolo":
+            min_hits = 20
+            max_dist = 80       # Max pixels an object is allowed to move per frame
+            max_missing = 3     # How many frames an object can be lost before deletion
+            self.tracker = tracking.ObjectTracker(max_missing=max_missing, min_hits=min_hits, max_dist=max_dist)
 
-        # turn on/off usage of localization factor
+        if model_type == "rcnn":
+            min_hits = 5 # rcnn is much slower
+            max_dist = 80       # Max pixels an object is allowed to move per frame
+            max_missing = 5     # How many frames an object can be lost before deletion
+            self.tracker = tracking.ObjectTracker(max_missing=max_missing, min_hits=min_hits, max_dist=max_dist)
+
+
+        # --- Coordinate Correction Factors ---
         self.use_localization_factor = use_localization_factor
         self.factor_x = 0.5919
         self.factor_y = 0.5409
         self.factor_z = 0.9344
 
-        # ---------------------------------------------------------
-        # Model Selection & Initialization
-        # ---------------------------------------------------------
+        # --- Internal States and general initializations ---
+        self.conf = conf
+        self.model_type = model_type.lower()
+        self.classes = classes
+        self.pipeline = None
+        self.config = None
+        self.align = None
+        self.depth_scale = None
+        self.is_initialized = False
+        # Camera Intrinsics
+        self.cx = 0
+        self.cy = 0
+        self.fx = 0
+        self.fy = 0
+
+        # --- Model Selection & Initialization --- 
         if self.model_type == "yolo":
             print("Initializing YOLO Model...")
             # Initialize a YOLO model
@@ -95,44 +115,30 @@ class ObjDetection:
         else:
             raise ValueError("Invalid model_type. Please choose 'yolo' or 'rcnn'.")
 
-        # ---------------------------------------------------------
-        # RealSense & Filter Parameters
-        # ---------------------------------------------------------
-        self.pipeline = None
-        self.config = None
-        self.align = None
-        self.depth_scale = None
-        self.is_initialized = False
-
-        self.cx = 0
-        self.cy = 0
-        self.fx = 0
-        self.fy = 0
-
-        # Set filters on/off
+        # --- Filter setup ---
         self.use_decimation = use_decimation
         self.use_spatial = use_spatial
         self.use_temporal = use_temporal
         self.use_hole_filling = use_hole_filling
         self.use_mask_filter = use_mask_filter
 
-        # Initialize depth filters
+        # Decimation Filter: Reduces resolution
         self.dec_filter = rs.decimation_filter()
-        self.dec_magnitude = 2
-        self.dec_filter.set_option(rs.option.filter_magnitude, self.dec_magnitude) 
-        
+        self.dec_filter.set_option(rs.option.filter_magnitude, 2)
+
+        # Temporal Filter: Uses previous frames to smooth data
         self.temp_filter = rs.temporal_filter()
-        
+
+        # Hole Filling: Fills invalid depth pixels
         self.hole_filter = rs.hole_filling_filter()
+        self.hole_filter.set_option(rs.option.holes_fill, 2) # Mode 2: Nearest from around
 
-        # Change mode to "Nearest" (prevents values from being smudged), 2 = nearest_from_around
-        self.hole_filter.set_option(rs.option.holes_fill, 2) 
-
-        # Set spatial filter so that it does not smooth edges
+        # Spatial Filter: Edge-preserving smoothing
         self.spatial_filter = rs.spatial_filter()
-        self.spatial_filter.set_option(rs.option.filter_magnitude, 2) # amount of iterations, medium smoothing strength
-        self.spatial_filter.set_option(rs.option.filter_smooth_alpha, 0.5) # controls smoothing  strength,high value smooth edges
-        self.spatial_filter.set_option(rs.option.filter_smooth_delta, 20) # Important: High delta prevents smoothing across edges
+        self.spatial_filter.set_option(rs.option.filter_magnitude, 2)      # Iterations (Medium smoothing)
+        self.spatial_filter.set_option(rs.option.filter_smooth_alpha, 0.5) # Smoothing strength
+        self.spatial_filter.set_option(rs.option.filter_smooth_delta, 20)  # Threshold (High delta preserves edges)
+        self.spatial_filter.set_option(rs.option.holes_fill, 0)   
         self.spatial_filter.set_option(rs.option.holes_fill, 0) # Do not fill holes via spatial filter, hole filling fiter does this
 
     # ---------------------------------------------------------
