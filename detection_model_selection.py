@@ -16,7 +16,7 @@ class ObjDetection:
                  use_temporal=False,    # Can cause inaccuracy if the object moves fast
                  use_hole_filling=True, # Fills missing data at edges with estimated values
                  use_mask_filter=True,
-                 localization_factor=False,
+                 use_localization_factor=True,
                  conf=0.5):
 
         self.W = 640
@@ -25,11 +25,17 @@ class ObjDetection:
         self.model_type = model_type.lower()
         self.classes = classes
 
-        # initialize tracker for temporal mask filtering
-        min_hits = 3
+        # initialize tracker for temporal mask filtering, reduces also noise in localization
+        min_hits = 20
         max_dist = 80 # obj are only allowed to move 80 pixels per frame
-        max_missing=5 # time to live of a mask
+        max_missing=3 # time to live of a mask
         self.tracker = tracking.ObjectTracker(max_missing=max_missing, min_hits=min_hits, max_dist=max_dist)
+
+        # turn on/off usage of localization factor
+        self.use_localization_factor = use_localization_factor
+        self.factor_x = 0.5919
+        self.factor_y = 0.5409
+        self.factor_z = 0.9344
 
         # ---------------------------------------------------------
         # Model Selection & Initialization
@@ -118,6 +124,7 @@ class ObjDetection:
         self.temp_filter = rs.temporal_filter()
         
         self.hole_filter = rs.hole_filling_filter()
+
         # Change mode to "Nearest" (prevents values from being smudged), 2 = nearest_from_around
         self.hole_filter.set_option(rs.option.holes_fill, 2) 
 
@@ -364,9 +371,15 @@ class ObjDetection:
                 continue
 
             # 3D coordinates (Camera Coordinate System)
-            X = (xs - cx) * z / fx
-            Y = (ys - cy) * z / fy
-            Z = z
+            if self.use_localization_factor:
+                X = (xs - cx) * z / fx * self.factor_x
+                Y = (ys - cy) * z / fy  * self.factor_y
+                Z = z * self.factor_z
+
+            else:
+                X = (xs - cx) * z / fx
+                Y = (ys - cy) * z / fy
+                Z = z
 
             # Invert Y for Open3D
             Y = -Y
