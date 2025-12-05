@@ -16,7 +16,7 @@ class ObjDetection:
                  use_temporal=False,         # Filters over time (can cause ghosting if objects move fast)
                  use_hole_filling=True,      # Fills missing depth data with estimated values
                  use_mask_filter=True,       # Post-processing of segmentation masks (erode/dilate)
-                 use_localization_factor=True, # Apply correction factors to 3D coordinates
+                 use_localization_factor=False, # Apply correction factors to 3D coordinates
                  conf=0.5):
 
         # select frame resolution
@@ -209,6 +209,15 @@ class ObjDetection:
         aligned_depth_image = np.asanyarray(aligned_depth_frame.get_data())
         aligned_color_image = np.asanyarray(aligned_color_frame.get_data())
 
+        # Camera parameters of the depth frame for localization
+        intrinsics_depth = aligned_depth_frame.get_profile().as_video_stream_profile().get_intrinsics()
+        fx, fy, cx, cy = intrinsics_depth.fx, intrinsics_depth.fy, intrinsics_depth.ppx, intrinsics_depth.ppy 
+
+        self.cx = cx
+        self.cy = cy
+        self.fx = fx
+        self.fy = fy
+
         return aligned_color_image, aligned_depth_image
 
     # ---------------------------------------------------------
@@ -312,21 +321,12 @@ class ObjDetection:
         return confirmed_objects, annotated_image
 
     # ---------------------------------------------------------
-    # Fusion (Common for both models)
+    # Fusion 
     # ---------------------------------------------------------
     def fuse(self, color_image, depth_image, obj_masks):
         """
         Generates point clouds from color and depth images for each detected object.
         """
-        # Camera parameters of the depth camera
-        intrinsics_depth = self.pipeline.get_active_profile().get_stream(rs.stream.depth)\
-                                        .as_video_stream_profile().get_intrinsics()
-        fx, fy, cx, cy = intrinsics_depth.fx, intrinsics_depth.fy, intrinsics_depth.ppx, intrinsics_depth.ppy 
-
-        self.cx = cx
-        self.cy = cy
-        self.fx = fx
-        self.fy = fy
 
         point_cloud_results = {}
         depth_masked = np.zeros_like(depth_image, dtype=depth_image.dtype)
@@ -378,13 +378,13 @@ class ObjDetection:
 
             # 3D coordinates (Camera Coordinate System)
             if self.use_localization_factor:
-                X = (xs - cx) * z / fx * self.factor_x
-                Y = (ys - cy) * z / fy  * self.factor_y
+                X = (xs - self.cx) * z / self.fx * self.factor_x
+                Y = (ys - self.cy) * z / self.fy  * self.factor_y
                 Z = z * self.factor_z
 
             else:
-                X = (xs - cx) * z / fx
-                Y = (ys - cy) * z / fy
+                X = (xs - self.cx) * z / self.fx
+                Y = (ys - self.cy) * z / self.fy
                 Z = z
 
             # Invert Y for Open3D
