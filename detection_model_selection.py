@@ -420,7 +420,8 @@ class ObjDetection:
                 "points": points,
                 "colors": colors,
                 "median": median_xyz,
-                "balliness": sphere_quality
+                "balliness": sphere_quality,
+                "radius": radius
             }
             instance_counter += 1
 
@@ -522,13 +523,13 @@ class ObjDetection:
                 # Write median coordinates on the image
                 for instance in pc_dict.values():
                     median = instance["median"]
-                    
                     balliness = instance["balliness"]
+                    radius = instance["radius"]
                     # Approximate pixel coordinates of the median
                     if median[2] != 0:
                         x_pixel = int((median[0] * self.fx) / median[2] + self.cx)
                         y_pixel = int((-median[1] * self.fy) / median[2] + self.cy) # Invert Y again for image coordinates
-                        text = f"X:{median[0]:.2f} Y:{median[1]:.2f} Z:{median[2]:.2f} B:{balliness:.0f}%"
+                        text = f"X:{median[0]:.2f} Y:{median[1]:.2f} Z:{median[2]:.2f} B:{balliness:.0f}% R:{radius:.2f}"
                         cv2.putText(annotated_color_image, text, (x_pixel, y_pixel),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
 
