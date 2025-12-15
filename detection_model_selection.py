@@ -10,10 +10,10 @@ import tracking
 
 class ObjDetection:
     def __init__(self, classes,
-                 model_type="rcnn",          # Select model: 'yolo' or 'rcnn'
+                 model_type="yolo",          # Select model: 'yolo' or 'rcnn'
                  use_decimation=False,       # Decreases resolution, loss of precision at edges
                  use_spatial=True,           # Smooths edges (good for walls, bad for small floating objects)
-                 use_temporal=False,         # Filters over time (can cause ghosting if objects move fast)
+                 use_temporal=True,         # Filters over time (can cause ghosting if objects move fast)
                  use_hole_filling=True,      # Fills missing depth data with estimated values
                  use_mask_filter=True,       # Post-processing of segmentation masks (erode/dilate)
                  use_localization_factor=False, # Apply correction factors to 3D coordinates
@@ -127,8 +127,11 @@ class ObjDetection:
         self.dec_filter.set_option(rs.option.filter_magnitude, 2)
 
         # Temporal Filter: Uses previous frames to smooth data
-        self.temp_filter = rs.temporal_filter()
-
+        temp_filter = rs.temporal_filter()
+        temp_filter.set_option(rs.option.filter_smooth_alpha, 0.15) # Stärkere Glättung
+        temp_filter.set_option(rs.option.filter_smooth_delta, 40)   # Rausch-Toleranz erhöht
+        self.temp_filter = temp_filter
+        
         # Hole Filling: Fills invalid depth pixels
         self.hole_filter = rs.hole_filling_filter()
         self.hole_filter.set_option(rs.option.holes_fill, 2) # Mode 2: Nearest from around
@@ -189,28 +192,9 @@ class ObjDetection:
             raise RuntimeError("Alignment object not initialized.")
 
         aligned_frames = self.align.process(frames)
-        aligned_depth_frame = aligned_frames.get_depth_frame()
-        aligned_color_frame = aligned_frames.get_color_frame()
-
-        # Apply depth filters
-        if aligned_depth_frame:
-            if self.use_decimation:
-                aligned_depth_frame = self.dec_filter.process(aligned_depth_frame)
-            if self.use_spatial:
-                aligned_depth_frame = self.spatial_filter.process(aligned_depth_frame)
-            if self.use_temporal:
-                aligned_depth_frame = self.temp_filter.process(aligned_depth_frame)
-            if self.use_hole_filling:
-                aligned_depth_frame = self.hole_filter.process(aligned_depth_frame)
-
-        if not aligned_depth_frame or not aligned_color_frame:
-            return None, None
-
-        aligned_depth_image = np.asanyarray(aligned_depth_frame.get_data())
-        aligned_color_image = np.asanyarray(aligned_color_frame.get_data())
 
         # Camera parameters of the depth frame for localization
-        intrinsics_depth = aligned_depth_frame.get_profile().as_video_stream_profile().get_intrinsics()
+        intrinsics_depth = aligned_frames.get_depth_frame().get_profile().as_video_stream_profile().get_intrinsics()
         fx, fy, cx, cy = intrinsics_depth.fx, intrinsics_depth.fy, intrinsics_depth.ppx, intrinsics_depth.ppy 
 
         self.cx = cx
@@ -218,7 +202,32 @@ class ObjDetection:
         self.fx = fx
         self.fy = fy
 
-        return aligned_color_image, aligned_depth_image
+
+        return aligned_frames
+    
+    def depth_filter(self, aligned_frames):
+
+        aligned_depth_frame = aligned_frames.get_depth_frame()
+        aligned_color_frame = aligned_frames.get_color_frame()
+
+        if not aligned_depth_frame or not aligned_color_frame:
+            return None, None
+
+        # Apply depth filters
+        filtered_depth_frame = aligned_depth_frame
+        if self.use_decimation:
+            filtered_depth_frame = self.dec_filter.process(filtered_depth_frame)
+        if self.use_spatial:
+            filtered_depth_frame = self.spatial_filter.process(filtered_depth_frame)
+        if self.use_temporal:
+            filtered_depth_frame = self.temp_filter.process(filtered_depth_frame)
+        if self.use_hole_filling:
+            filtered_depth_frame = self.hole_filter.process(filtered_depth_frame)
+
+        filtered_depth_image = np.asanyarray(filtered_depth_frame.get_data())
+        aligned_color_image = np.asanyarray(aligned_color_frame.get_data())
+
+        return aligned_color_image, filtered_depth_image
 
     # ---------------------------------------------------------
     # Detection Wrapper
@@ -253,7 +262,7 @@ class ObjDetection:
                     mask = cv2.resize(mask, (annotated_image.shape[1], annotated_image.shape[0]),
                                       interpolation=cv2.INTER_NEAREST)
 
-                # prepare object tracker
+                # prepare object
                 det_entry = {
                     "class": self.model.names[int(box.cls[0])],
                     "mask": mask,
@@ -330,91 +339,133 @@ class ObjDetection:
 
         point_cloud_results = {}
         depth_masked = np.zeros_like(depth_image, dtype=depth_image.dtype)
+        
+        # Prepare grid for vectorisation (once or per ROI)
+        # We do this per ROI, as it is faster than doing it for the entire image.
         instance_counter = 0
 
         for obj in obj_masks:
             label = obj["class"]
-            
-            # Ensure mask is binary (0 or 1)
-            mask = (obj["mask"] > 0.5).astype(np.uint8) 
+            mask_full = (obj["mask"] > 0.5).astype(np.uint8)
 
-            # Mask filtering: Close
+            # 1. Calculate bounding box (efficiency boost: process ROI only)
+            ys, xs = np.where(mask_full > 0)
+            if len(xs) == 0: continue
+
+            x_min, x_max = np.min(xs), np.max(xs)
+            y_min, y_max = np.min(ys), np.max(ys)
+
+            # Cut out ROI
+            mask_roi = mask_full[y_min:y_max+1, x_min:x_max+1]
+            depth_roi_raw = depth_image[y_min:y_max+1, x_min:x_max+1]
+            color_roi = color_image[y_min:y_max+1, x_min:x_max+1]
+
+            # Mask filtering (only on ROI)
             if self.use_mask_filter:
-                kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
-                mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_close)
+                # Close (fill holes)
+                kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+                mask_roi = cv2.morphologyEx(mask_roi, cv2.MORPH_CLOSE, kernel_close)
+                # Erode (clean edges)
+                kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+                mask_roi = cv2.erode(mask_roi, kernel_erode, iterations=2)
 
-                # Mask filtering: Erode (cut away unsafe edges)
-                kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-                mask = cv2.erode(mask, kernel_erode, iterations=2)
+            # Apply mask to depth (ignore values outside the mask)
+            # We copy the depth ROI so as not to change the original
+            z_roi = depth_roi_raw.astype(np.float32) * self.depth_scale
 
-            # Resize mask to match depth image if needed
-            if mask.shape != depth_image.shape:
-                mask = cv2.resize(mask, (depth_image.shape[1], depth_image.shape[0]),
-                                  interpolation=cv2.INTER_NEAREST)
+            # We set pixels that do NOT belong to the mask to 0 (they will be ignored later).
+            z_roi[mask_roi < 0.1] = 0.0
+            z_roi[mask_roi == 0] = 0.0
+
+            # 2. Statistical analysis & outlier detection
+            # Only consider valid values within the mask
+            valid_z =z_roi[z_roi > 0.1]
+
+            if len(valid_z) == 0: continue
+
+            median_z = np.median(valid_z)
+
+            # Define tolerance range (e.g. +/- 15 cm around median)
+            z_threshold = 0.05
+
+            # Bad Pixel Mask: Pixels IN THE MASK, but Z is 0 or deviates significantly
+            # We want to interpolate these instead of deleting them!
+            bad_pixel_mask = np.zeros_like(mask_roi, dtype=np.uint8)
+
+            # Criteria for "bad pixels" within the object mask:
+            # 1. Invalid depth (0 or NaN)
+            # 2. Too far from the median (noise)
+            is_noise = np.abs(z_roi - median_z) > z_threshold
+            is_invalid = (z_roi <= 0.001) | np.isnan(z_roi)
             
-            # Resize color image to match depth image if needed
-            if color_image.shape[:2] != depth_image.shape:
-                color_image_proc = cv2.resize(color_image, (depth_image.shape[1], depth_image.shape[0]),
-                                         interpolation=cv2.INTER_NEAREST)
-            else:
-                color_image_proc = color_image
-
-            # Pixel coordinates of the mask
-            ys, xs = np.where(mask > 0)
-            if len(xs) == 0:
-                continue
-
-            # Fill masked depth image (for visualization)
-            depth_masked[ys, xs] = depth_image[ys, xs]
-
-            # Depth values in meters
-            z = depth_image[ys, xs].astype(float) * self.depth_scale # depth parallel to optical axis
+            bad_pixel_mask[(mask_roi > 0) & (is_noise | is_invalid)] = 1  # Markiere Fehler
             
-            # Depth filter: valid values
-            valid = (z > 0.1) & (z < 20.0) & (~np.isnan(z))
-            xs, ys, z = xs[valid], ys[valid], z[valid]
-            if len(xs) == 0:
-                continue
+            # 3. INTERPOLATION (Inpainting)
+            # cv2.inpaint expects 8-bit. We temporarily scale the relevant Z-range.
+            if np.sum(bad_pixel_mask) > 0:
+                # Wir definieren min/max basierend auf dem Median, um Kontrast zu maximieren
+                local_min = max(0, median_z - z_threshold)
+                local_max = median_z + z_threshold
+                
+                # Clip & Normalize auf 0-255
+                z_roi_clipped = np.clip(z_roi, local_min, local_max)
+                z_norm = ((z_roi_clipped - local_min) / (local_max - local_min) * 255).astype(np.uint8)
+                
+                # Inpainting: Uses healthy neighbouring pixels to fill holes (Telea algorithm)
+                z_inpainted_8u = cv2.inpaint(z_norm, bad_pixel_mask, 3, cv2.INPAINT_TELEA)
+                
+                # Scaling back to metres
+                z_inpainted = (z_inpainted_8u.astype(np.float32) / 255.0) * (local_max - local_min) + local_min
+                
+                # Only accept the repaired areas
+                z_roi[bad_pixel_mask > 0] = z_inpainted[bad_pixel_mask > 0]
 
-            # 3D coordinates (Camera Coordinate System)
+            # 4. Projection in 3D (vectorised calculation)
+            # Create coordinate grid for the ROI
+            # Grid coordinates relative to the overall image
+            grid_y, grid_x = np.meshgrid(
+                np.arange(y_min, y_max + 1), 
+                np.arange(x_min, x_max + 1), 
+                indexing='ij'
+            )
+
+            # Only process masked pixels (now including interpolated pixels!)
+            valid_mask = (mask_roi > 0)
+
+            if not np.any(valid_mask): continue
+
+            # Extract vectors
+            z_final = z_roi[valid_mask]
+            x_final = grid_x[valid_mask]
+            y_final = grid_y[valid_mask]
+            colors_final = color_roi[valid_mask][:, ::-1] / 255.0 # BGR -> RGB
+
+            # 3D calculation
             if self.use_localization_factor:
-                X = (xs - self.cx) * z / self.fx * self.factor_x
-                Y = (ys - self.cy) * z / self.fy  * self.factor_y
-                Z = z * self.factor_z
-
+                X = (x_final - self.cx) * z_final / self.fx * self.factor_x
+                Y = (y_final - self.cy) * z_final / self.fy * self.factor_y
+                Z = z_final * self.factor_z
             else:
-                X = (xs - self.cx) * z / self.fx
-                Y = (ys - self.cy) * z / self.fy
-                Z = z
+                X = (x_final - self.cx) * z_final / self.fx
+                Y = (y_final - self.cy) * z_final / self.fy
+                Z = z_final
 
-            # Invert Y for Open3D
-            Y = -Y
+            Y = -Y # Open3D convention
 
             points = np.stack((X, Y, Z), axis=-1)
 
-            # Get color values (BGR -> RGB)
-            colors = color_image_proc[ys, xs][:, ::-1] / 255.0
+            # Visualisation: Update masked depth image (for display only)
+            # We pack the (possibly interpolated) raw values back
+            depth_roi_fixed_raw = (z_roi / self.depth_scale).astype(np.uint16)
+            depth_masked[y_min:y_max+1, x_min:x_max+1] = np.where(mask_roi > 0, depth_roi_fixed_raw, depth_masked[y_min:y_max+1, x_min:x_max+1])
 
-             # Calculate median
-            median_xyz = np.median(points, axis=0)
-
-            # Z-Filtering: Allow only points within tolerance of median Z
-            z_median = median_xyz[2]
-            z_values = points[:, 2]
-            mask_z = np.abs(z_values - z_median) < 0.05 
-            
-            points = points[mask_z]
-            colors = colors[mask_z]       
-            
-            if len(points) == 0:
-                continue
-            
-            median_xyz = np.median(points, axis=0) # recalculate median    
+            # Median für Label berechnen
+            median_xyz = np.mean(points, axis=0)
 
             point_cloud_results[instance_counter] = {
                 "label": label,
                 "points": points,
-                "colors": colors,
+                "colors": colors_final,
                 "median": median_xyz
             }
             instance_counter += 1
@@ -472,7 +523,9 @@ class ObjDetection:
                 frames = self.get_frame()
 
                 # Align frames
-                color_image, depth_image = self.align_frames(frames)
+                aligned_frames = self.align_frames(frames)
+                color_image, depth_image = self.depth_filter(aligned_frames)
+
                 if color_image is None or depth_image is None:
                     continue
                 
