@@ -16,7 +16,7 @@ class ObjDetection:
                  use_temporal=True,         # Filters over time (can cause ghosting if objects move fast)
                  use_hole_filling=True,      # Fills missing depth data with estimated values
                  use_mask_filter=True,       # Post-processing of segmentation masks (erode/dilate)
-                 use_localization_factor=False, # Apply correction factors to 3D coordinates
+                 use_localization_factor=True, # Apply correction factors to 3D coordinates
                  conf=0.5):
 
         # select frame resolution
@@ -40,9 +40,9 @@ class ObjDetection:
 
         # --- Coordinate Correction Factors ---
         self.use_localization_factor = use_localization_factor
-        self.factor_x = 0.5919
-        self.factor_y = 0.5409
-        self.factor_z = 0.9344
+        self.factor_x = 1
+        self.factor_y = 0.9
+        self.factor_z = 0.9
 
         # --- Internal States and general initializations ---
         self.conf = conf
@@ -443,7 +443,7 @@ class ObjDetection:
             # 3D calculation
             if self.use_localization_factor:
                 X = (x_final - self.cx) * z_final / self.fx * self.factor_x
-                Y = (y_final - self.cy) * z_final / self.fy * self.factor_y
+                Y = (y_final - 5 - self.cy) * z_final / self.fy * self.factor_y
                 Z = z_final * self.factor_z
             else:
                 X = (x_final - self.cx) * z_final / self.fx
@@ -462,16 +462,67 @@ class ObjDetection:
             # Median für Label berechnen
             median_xyz = np.mean(points, axis=0)
 
+             # Calculate median
+            #median_xyz = np.median(points, axis=0)
+
+            # Z-Filtering: Allow only points within tolerance of median Z
+            z_median = median_xyz[2]
+            z_values = points[:, 2]
+            mask_z = np.abs(z_values - z_median) < 0.05 
+            
+            points = points[mask_z]
+            colors_final = colors_final[mask_z]       
+            
+            if len(points) == 0:
+                continue
+
+            center, radius = self.fit_sphere(points)
+            rmse, _ = self.sphere_fit_error(points, center, radius)
+            sphere_quality = max(0, 100 * (1 - rmse / radius))
+
+            median_xyz = np.median(points, axis=0) # recalculate median   
+
+
             point_cloud_results[instance_counter] = {
                 "label": label,
                 "points": points,
                 "colors": colors_final,
-                "median": median_xyz
+                "median": median_xyz,
+                "balliness": sphere_quality,
+                "radius": radius
+
             }
             instance_counter += 1
 
         return point_cloud_results, depth_masked
 
+    def fit_sphere(self, points):
+        # points: Nx3 numpy array
+        
+        # Extract x,y,z
+        x = points[:,0]
+        y = points[:,1]
+        z = points[:,2]
+
+        # Build the A matrix and f vector for least squares
+        A = np.column_stack([2*x, 2*y, 2*z, np.ones_like(x)])
+        f = x**2 + y**2 + z**2
+
+        # Solve A*p = f for p = [x0, y0, z0, c]
+        C, *_ = np.linalg.lstsq(A, f, rcond=None)
+
+        x0, y0, z0, c = C
+        # compute radius
+        r = np.sqrt(c + x0**2 + y0**2 + z0**2)
+
+        return np.array([x0, y0, z0]), r
+    
+    def sphere_fit_error(self, points, center, radius):
+        d = np.linalg.norm(points - center, axis=1)
+        residuals = d - radius
+        rmse = np.sqrt(np.mean(residuals**2))
+        return rmse, residuals
+    
     # ---------------------------------------------------------
     # Stop Camera
     # ---------------------------------------------------------
@@ -543,11 +594,13 @@ class ObjDetection:
                 # Write median coordinates on the image
                 for instance in pc_dict.values():
                     median = instance["median"]
+                    balliness = instance["balliness"]
+                    radius = instance["radius"]
                     # Approximate pixel coordinates of the median
                     if median[2] != 0:
                         x_pixel = int((median[0] * self.fx) / median[2] + self.cx)
                         y_pixel = int((-median[1] * self.fy) / median[2] + self.cy) # Invert Y again for image coordinates
-                        text = f"X:{median[0]:.2f} Y:{median[1]:.2f} Z:{median[2]:.2f}"
+                        text = f"X:{median[0]:.2f} Y:{median[1]:.2f} Z:{median[2]:.2f} B:{balliness:.0f}% R:{radius:.2f}"
                         cv2.putText(annotated_color_image, text, (x_pixel, y_pixel),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
 
