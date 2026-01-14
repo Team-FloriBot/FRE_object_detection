@@ -7,15 +7,15 @@ import pyrealsense2 as rs
 import open3d as o3d
 from ultralytics import YOLO
 import tracking
-
+from sklearn.neighbors import NearestNeighbors
 class ObjDetection:
     def __init__(self, classes,
                  model_type="yolo",          # Select model: 'yolo' or 'rcnn'
                  use_decimation=False,       # Decreases resolution, loss of precision at edges
-                 use_spatial=True,           # Smooths edges (good for walls, bad for small floating objects)
+                 use_spatial=False,           # Smooths edges (good for walls, bad for small floating objects)
                  use_temporal=True,         # Filters over time (can cause ghosting if objects move fast)
                  use_hole_filling=True,      # Fills missing depth data with estimated values
-                 use_mask_filter=True,       # Post-processing of segmentation masks (erode/dilate)
+                 use_mask_filter=False,       # Post-processing of segmentation masks (erode/dilate)
                  use_localization_factor=True, # Apply correction factors to 3D coordinates
                  conf=0.5):
 
@@ -363,12 +363,13 @@ class ObjDetection:
             # Mask filtering (only on ROI)
             if self.use_mask_filter:
                 # Erode (clean edges, and round edges)
-                kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (30, 30))
+                kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
                 mask_roi = cv2.erode(mask_roi, kernel_erode, iterations=2)
 
                 # Dilatation (clean edges, and round edges)
-                kernel_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
-                mask_roi = cv2.erode(mask_roi, kernel_dilate, iterations=2)
+                kernel_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+                mask_roi = cv2.dilate(mask_roi, kernel_dilate, iterations=2)
+
 
             # Apply mask to depth (ignore values outside the mask)
             # We copy the depth ROI so as not to change the original
@@ -455,6 +456,20 @@ class ObjDetection:
 
             points = np.stack((X, Y, Z), axis=-1)
 
+            nbrs = NearestNeighbors(n_neighbors=10).fit(points)
+            distances, _ = nbrs.kneighbors(points)
+
+            mean_dist = distances[:,1:].mean(axis=1)
+            mad = np.median(np.abs(mean_dist - np.median(mean_dist)))
+            threshold = np.median(mean_dist) + 3 * mad
+
+            mean_dist < threshold
+
+            keep_knn = mean_dist < threshold
+
+            points = points[keep_knn]
+            colors_final = colors_final[keep_knn]
+
             # Visualisation: Update masked depth image (for display only)
             # We pack the (possibly interpolated) raw values back
             depth_roi_fixed_raw = (z_roi / self.depth_scale).astype(np.uint16)
@@ -477,9 +492,24 @@ class ObjDetection:
             if len(points) == 0:
                 continue
 
+
+            # Kugelfit
             center, radius = self.fit_sphere(points)
-            rmse, _ = self.sphere_fit_error(points, center, radius)
-            sphere_quality = max(0, 100 * (1 - rmse / radius))
+            d = np.linalg.norm(points - center, axis=1)
+
+            # Radiale Qualität
+            radial_quality = 1 - np.std(d) / radius
+            radial_quality = np.clip(radial_quality, 0, 1)
+
+            # 3D-Verteilung
+            X = points - points.mean(axis=0)
+            cov = np.cov(X.T)
+            l = np.linalg.eigvalsh(cov)
+            spatial_quality = l.min() / l.max()
+            #spatial_quality = l[0] / np.mean(l)
+
+            sphere_quality = min(10 * 100 * radial_quality * spatial_quality,100)
+            
 
             median_xyz = np.median(points, axis=0) # recalculate median   
 
