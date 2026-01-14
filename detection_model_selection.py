@@ -130,18 +130,18 @@ class ObjDetection:
         temp_filter = rs.temporal_filter()
         temp_filter.set_option(rs.option.filter_smooth_alpha, 0.15) # Stärkere Glättung
         temp_filter.set_option(rs.option.filter_smooth_delta, 40)   # Rausch-Toleranz erhöht
+        temp_filter.set_option(rs.option.holes_fill, 0) # Do not fill holes via temporal filter, hole filling fiter does this
         self.temp_filter = temp_filter
         
         # Hole Filling: Fills invalid depth pixels
         self.hole_filter = rs.hole_filling_filter()
-        self.hole_filter.set_option(rs.option.holes_fill, 2) # Mode 2: Nearest from around
+        self.hole_filter.set_option(rs.option.holes_fill, 1) # Mode 1: Farthest from around
 
         # Spatial Filter: Edge-preserving smoothing
         self.spatial_filter = rs.spatial_filter()
         self.spatial_filter.set_option(rs.option.filter_magnitude, 2)      # Iterations (Medium smoothing)
         self.spatial_filter.set_option(rs.option.filter_smooth_alpha, 0.5) # Smoothing strength
         self.spatial_filter.set_option(rs.option.filter_smooth_delta, 20)  # Threshold (High delta preserves edges)
-        self.spatial_filter.set_option(rs.option.holes_fill, 0)   
         self.spatial_filter.set_option(rs.option.holes_fill, 0) # Do not fill holes via spatial filter, hole filling fiter does this
 
     # ---------------------------------------------------------
@@ -362,12 +362,13 @@ class ObjDetection:
 
             # Mask filtering (only on ROI)
             if self.use_mask_filter:
-                # Close (fill holes)
-                kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-                mask_roi = cv2.morphologyEx(mask_roi, cv2.MORPH_CLOSE, kernel_close)
-                # Erode (clean edges)
-                kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+                # Erode (clean edges, and round edges)
+                kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (30, 30))
                 mask_roi = cv2.erode(mask_roi, kernel_erode, iterations=2)
+
+                # Dilatation (clean edges, and round edges)
+                kernel_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+                mask_roi = cv2.erode(mask_roi, kernel_dilate, iterations=2)
 
             # Apply mask to depth (ignore values outside the mask)
             # We copy the depth ROI so as not to change the original
@@ -386,7 +387,7 @@ class ObjDetection:
             median_z = np.median(valid_z)
 
             # Define tolerance range (e.g. +/- 15 cm around median)
-            z_threshold = 0.05
+            z_threshold = 0.1
 
             # Bad Pixel Mask: Pixels IN THE MASK, but Z is 0 or deviates significantly
             # We want to interpolate these instead of deleting them!
