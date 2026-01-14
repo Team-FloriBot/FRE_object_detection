@@ -371,7 +371,7 @@ class ObjDetection:
                 mask_roi = cv2.erode(mask_roi, kernel_erode, iterations=2)
 
                 # Dilatation (clean edges, and round edges)
-                kernel_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+                kernel_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (4, 4))
                 mask_roi = cv2.dilate(mask_roi, kernel_dilate, iterations=2)
 
 
@@ -640,9 +640,29 @@ class ObjDetection:
                         x_pixel = int((median[0] * self.fx) / median[2] + self.cx)
                         y_pixel = int((-median[1] * self.fy) / median[2] + self.cy) # Invert Y again for image coordinates
                         text = f"X:{median[0]:.2f} Y:{median[1]:.2f} Z:{median[2]:.2f} B:{balliness:.0f}% R:{radius:.2f}"
-                        cv2.putText(annotated_color_image, text, (x_pixel, y_pixel),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
+                        
+                        # 3. Text-Einstellungen
+                        font = cv2.FONT_HERSHEY_SIMPLEX
+                        font_scale = 0.4
+                        thickness = 1
+                        padding = 5  # Abstand vom Text zum Rand des Kastens
 
+                        # 4. Größe des Textes berechnen, um die Box-Größe zu bestimmen
+                        (text_w, text_h), baseline = cv2.getTextSize(text, font, font_scale, thickness)
+                        
+                    # Koordinaten für das Hintergrund-Rechteck (gefüllt)
+                        # Wir setzen den Text etwas über den berechneten Punkt, damit er nicht direkt auf dem Objekt klebt
+                        rect_x1 = x_pixel - padding
+                        rect_y1 = y_pixel - text_h - padding - baseline
+                        rect_x2 = x_pixel + text_w + padding
+                        rect_y2 = y_pixel + padding
+
+                        # Weißes Rechteck zeichnen (Farbe: BGR 255,255,255 | Dicke: -1 für ausgefüllt)
+                        cv2.rectangle(annotated_color_image, (rect_x1, rect_y1), (rect_x2, rect_y2), (255, 255, 255), -1)
+
+                        # Schwarzen Text darauf zeichnen (Farbe: BGR 0,0,0)
+                        cv2.putText(annotated_color_image, text, (x_pixel, y_pixel - baseline),
+                                    font, font_scale, (0, 0, 0), thickness, cv2.LINE_AA)
                 # Show results (OpenCV)
                 cv2.imshow("Original", color_image)
                 cv2.imshow("Detection - RGB", annotated_color_image)
