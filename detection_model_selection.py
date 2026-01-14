@@ -15,11 +15,11 @@ class ObjDetection:
                  use_spatial=False,           # Smooths edges (good for walls, bad for small floating objects)
                  use_temporal=True,         # Filters over time (can cause ghosting if objects move fast)
                  use_hole_filling=True,      # Fills missing depth data with estimated values
-                 use_mask_filter=False,       # Post-processing of segmentation masks (erode/dilate)
+                 use_mask_filter=True,       # Post-processing of segmentation masks (erode/dilate)
                  use_localization_factor=True, # Apply correction factors to 3D coordinates
                  conf=0.5):
 
-        # select frame resolution
+        # select frame resolutionqqqqqqqq
         self.W = 640
         self.H = 480
 
@@ -362,12 +362,16 @@ class ObjDetection:
 
             # Mask filtering (only on ROI)
             if self.use_mask_filter:
+                # Close
+                kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+                mask_roi = cv2.morphologyEx(mask_roi, cv2.MORPH_CLOSE, kernel_close)
+
                 # Erode (clean edges, and round edges)
-                kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+                kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (30, 30))
                 mask_roi = cv2.erode(mask_roi, kernel_erode, iterations=2)
 
                 # Dilatation (clean edges, and round edges)
-                kernel_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+                kernel_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (30, 30))
                 mask_roi = cv2.dilate(mask_roi, kernel_dilate, iterations=2)
 
 
@@ -413,8 +417,12 @@ class ObjDetection:
                 z_roi_clipped = np.clip(z_roi, local_min, local_max)
                 z_norm = ((z_roi_clipped - local_min) / (local_max - local_min) * 255).astype(np.uint8)
                 
+                telea_mask = bad_pixel_mask.copy()
+                telea_mask[mask_roi == 0] = 1  # Der gesamte Hintergrund wird als "Loch" markiert
+
+
                 # Inpainting: Uses healthy neighbouring pixels to fill holes (Telea algorithm)
-                z_inpainted_8u = cv2.inpaint(z_norm, bad_pixel_mask, 3, cv2.INPAINT_TELEA)
+                z_inpainted_8u = cv2.inpaint(z_norm, telea_mask, 3, cv2.INPAINT_TELEA)
                 
                 # Scaling back to metres
                 z_inpainted = (z_inpainted_8u.astype(np.float32) / 255.0) * (local_max - local_min) + local_min
@@ -484,7 +492,7 @@ class ObjDetection:
             # Z-Filtering: Allow only points within tolerance of median Z
             z_median = median_xyz[2]
             z_values = points[:, 2]
-            mask_z = np.abs(z_values - z_median) < 0.05 
+            mask_z = np.abs(z_values - z_median) < 0.05
             
             points = points[mask_z]
             colors_final = colors_final[mask_z]       
