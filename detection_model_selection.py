@@ -367,11 +367,11 @@ class ObjDetection:
                 mask_roi = cv2.morphologyEx(mask_roi, cv2.MORPH_CLOSE, kernel_close)
 
                 # Erode (clean edges, and round edges)
-                kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (30, 30))
+                kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
                 mask_roi = cv2.erode(mask_roi, kernel_erode, iterations=2)
 
                 # Dilatation (clean edges, and round edges)
-                kernel_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (30, 30))
+                kernel_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
                 mask_roi = cv2.dilate(mask_roi, kernel_dilate, iterations=2)
 
 
@@ -489,13 +489,13 @@ class ObjDetection:
              # Calculate median
             #median_xyz = np.median(points, axis=0)
 
-            # # Z-Filtering: Allow only points within tolerance of median Z
-            # z_median = median_xyz[2]
-            # z_values = points[:, 2]
-            # mask_z = np.abs(z_values - z_median) < 0.1
+            # Z-Filtering: Allow only points within tolerance of median Z
+            z_median = median_xyz[2]
+            z_values = points[:, 2]
+            mask_z = np.abs(z_values - z_median) < 0.1
             
-            # points = points[mask_z]
-            # colors_final = colors_final[mask_z]       
+            points = points[mask_z]
+            colors_final = colors_final[mask_z]       
             
             if len(points) == 0:
                 continue
