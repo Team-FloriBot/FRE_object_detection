@@ -371,11 +371,11 @@ class ObjDetection:
 
                 # Erode (clean edges, and round edges)
                 kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-                mask_roi = cv2.erode(mask_roi, kernel_erode, iterations=2)
+                mask_roi = cv2.erode(mask_roi, kernel_erode, iterations=2, borderType=cv2.BORDER_CONSTANT, borderValue=0)
 
                 # Dilatation (clean edges, and round edges)
                 kernel_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (4, 4))
-                mask_roi = cv2.dilate(mask_roi, kernel_dilate, iterations=2)
+                mask_roi = cv2.dilate(mask_roi, kernel_dilate, iterations=2, borderType=cv2.BORDER_CONSTANT, borderValue=0)
 
 
             # Apply mask to depth (ignore values outside the mask)
