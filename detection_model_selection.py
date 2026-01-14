@@ -12,14 +12,14 @@ class ObjDetection:
     def __init__(self, classes,
                  model_type="yolo",          # Select model: 'yolo' or 'rcnn'
                  use_decimation=False,       # Decreases resolution, loss of precision at edges
-                 use_spatial=False,           # Smooths edges (good for walls, bad for small floating objects)
+                 use_spatial=True,           # Smooths edges (good for walls, bad for small floating objects)
                  use_temporal=True,         # Filters over time (can cause ghosting if objects move fast)
                  use_hole_filling=True,      # Fills missing depth data with estimated values
                  use_mask_filter=True,       # Post-processing of segmentation masks (erode/dilate)
                  use_localization_factor=True, # Apply correction factors to 3D coordinates
                  conf=0.5):
 
-        # select frame resolutionqqqqqqqq
+        # select frame resolution
         self.W = 640
         self.H = 480
 
@@ -502,7 +502,6 @@ class ObjDetection:
 
 
             # Kugelfit
-            center, radius = self.fit_sphere(points)
             d = np.linalg.norm(points - center, axis=1)
 
             # Radiale Qualität
