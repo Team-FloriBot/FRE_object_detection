@@ -40,9 +40,12 @@ class ObjDetection:
 
         # --- Coordinate Correction Factors ---
         self.use_localization_factor = use_localization_factor
-        self.factor_x = 1
-        self.factor_y = 0.9
-        self.factor_z = 0.9
+        self.bias_x = -0.055
+        self.bias_y = -0.102
+        self.bias_z = -0.292
+        self.factor_x = 1.05
+        self.factor_y = 1.03
+        self.factor_z = 1.17
 
         # --- Internal States and general initializations ---
         self.conf = conf
@@ -450,16 +453,16 @@ class ObjDetection:
             y_final = grid_y[valid_mask]
             colors_final = color_roi[valid_mask][:, ::-1] / 255.0 # BGR -> RGB
 
+            X = (x_final - self.cx) * z_final / self.fx
+            Y = (y_final - self.cy) * z_final / self.fy
+            Z = z_final
+            """
             # 3D calculation
             if self.use_localization_factor:
-                X = (x_final - self.cx) * z_final / self.fx * self.factor_x
-                Y = (y_final - 5 - self.cy) * z_final / self.fy * self.factor_y
-                Z = z_final * self.factor_z
-            else:
-                X = (x_final - self.cx) * z_final / self.fx
-                Y = (y_final - self.cy) * z_final / self.fy
-                Z = z_final
-
+                X = (X-self.bias_x) / self.factor_x
+                Y = (Y-self.bias_y) / self.factor_y
+                Z = (Z-self.bias_z) / self.factor_z
+            """
             Y = -Y # Open3D convention
 
             points = np.stack((X, Y, Z), axis=-1)
