@@ -12,7 +12,7 @@ class ObjDetection:
     def __init__(self, classes,
                  model_type="yolo",          # Select model: 'yolo' or 'rcnn'
                  use_decimation=False,       # Decreases resolution, loss of precision at edges
-                 use_spatial=True,           # Smooths edges (good for walls, bad for small floating objects)
+                 use_spatial=False,           # Smooths edges (good for walls, bad for small floating objects)
                  use_temporal=True,         # Filters over time (can cause ghosting if objects move fast)
                  use_hole_filling=True,      # Fills missing depth data with estimated values
                  use_mask_filter=True,       # Post-processing of segmentation masks (erode/dilate)
@@ -492,7 +492,7 @@ class ObjDetection:
             # Z-Filtering: Allow only points within tolerance of median Z
             z_median = median_xyz[2]
             z_values = points[:, 2]
-            mask_z = np.abs(z_values - z_median) < 0.1
+            mask_z = np.abs(z_values - z_median) < 0.05
             
             points = points[mask_z]
             colors_final = colors_final[mask_z]       
@@ -502,6 +502,7 @@ class ObjDetection:
 
 
             # Kugelfit
+            center, radius = self.fit_sphere(points)
             d = np.linalg.norm(points - center, axis=1)
 
             # Radiale Qualität
