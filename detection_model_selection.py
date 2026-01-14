@@ -489,13 +489,13 @@ class ObjDetection:
              # Calculate median
             #median_xyz = np.median(points, axis=0)
 
-            # Z-Filtering: Allow only points within tolerance of median Z
-            z_median = median_xyz[2]
-            z_values = points[:, 2]
-            mask_z = np.abs(z_values - z_median) < 0.05
+            # # Z-Filtering: Allow only points within tolerance of median Z
+            # z_median = median_xyz[2]
+            # z_values = points[:, 2]
+            # mask_z = np.abs(z_values - z_median) < 0.1
             
-            points = points[mask_z]
-            colors_final = colors_final[mask_z]       
+            # points = points[mask_z]
+            # colors_final = colors_final[mask_z]       
             
             if len(points) == 0:
                 continue
