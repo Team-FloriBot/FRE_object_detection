@@ -22,11 +22,29 @@ pip install -r requirements.txt
 
 A ROS2 topic-driven node is available in `ros2_detection/ros2_detection/detector_node.py`.
 
-It wraps [detection_model_selection.py](detection_model_selection.py) and supports:
+It wraps the package-local detection implementation and supports:
 - Runtime model selection (`yolo` or `rcnn`)
 - Runtime model path configuration
 - Runtime class selection and confidence override per request
 - Detection result publishing as JSON
+
+## Current Layout
+
+The repository is split into two clear layers:
+
+- `ros2_detection/` contains the active ROS2 package and the real runtime code.
+- `legacy/` contains compatibility entrypoints for older scripts that imported the project before ROS2.
+- The workspace root is now kept clean and only holds project-level files like the Docker and package docs.
+
+## Model Files
+
+Place new weights in the workspace-level `models/` folder when possible.
+
+- YOLO example: `models/tennisball_600_seg_yolo11_v02.pt`
+- RCNN example: `models/mask_rcnn_final_3.pth`
+
+If you set `model_path` to just the filename, the node will search the workspace root and `models/` automatically.
+The Docker image also copies `models/` into `/root/ros2_ws/models`.
 
 Subscriptions:
 - `/detector/config` (`std_msgs/String`, JSON)

@@ -1,10 +1,6 @@
-"""Legacy compatibility wrapper for Mask R-CNN-only workflows.
+"""Legacy YOLO-only entrypoint that forwards to the unified implementation."""
 
-This module forwards to the unified implementation in
-`detection_model_selection.py` while preserving the old constructor style.
-"""
-
-from detection_model_selection import ObjDetection as _UnifiedObjDetection
+from ros2_detection.ros2_detection.detection_model_selection import ObjDetection as _UnifiedObjDetection
 
 
 class ObjDetection(_UnifiedObjDetection):
@@ -13,18 +9,16 @@ class ObjDetection(_UnifiedObjDetection):
         classes,
         use_decimation=False,
         use_spatial=True,
-        use_temporal=True,
+        use_temporal=False,
         use_hole_filling=True,
         use_mask_filter=True,
         conf=0.5,
         model_path=None,
-        rcnn_class_names=None,
     ):
         super().__init__(
             classes=classes,
-            model_type="rcnn",
+            model_type="yolo",
             model_path=model_path,
-            rcnn_class_names=rcnn_class_names,
             use_decimation=use_decimation,
             use_spatial=use_spatial,
             use_temporal=use_temporal,

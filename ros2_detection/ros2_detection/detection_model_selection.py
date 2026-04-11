@@ -1,6 +1,7 @@
 import torch
 import torchvision
 import torchvision.transforms as T
+import os
 import numpy as np
 import cv2
 import pyrealsense2 as rs
@@ -8,6 +9,37 @@ import open3d as o3d
 from ultralytics import YOLO
 from . import tracking
 from sklearn.neighbors import NearestNeighbors
+
+
+def _resolve_model_path(model_path, default_filename):
+    if model_path:
+        candidate_paths = []
+        provided_path = str(model_path)
+        candidate_paths.append(provided_path)
+        candidate_paths.append(os.path.join(os.getcwd(), provided_path))
+        candidate_paths.append(os.path.join(os.getcwd(), "models", provided_path))
+        package_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        candidate_paths.append(os.path.join(package_root, provided_path))
+        candidate_paths.append(os.path.join(package_root, "models", provided_path))
+        for candidate in candidate_paths:
+            if os.path.exists(candidate):
+                return candidate
+        return provided_path
+
+    package_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    default_candidates = [
+        default_filename,
+        os.path.join(os.getcwd(), default_filename),
+        os.path.join(os.getcwd(), "models", default_filename),
+        os.path.join(package_root, default_filename),
+        os.path.join(package_root, "models", default_filename),
+    ]
+    for candidate in default_candidates:
+        if os.path.exists(candidate):
+            return candidate
+    return default_filename
+
+
 class ObjDetection:
     def __init__(self, classes,
                  model_type="yolo",          # Select model: 'yolo' or 'rcnn'
@@ -70,7 +102,7 @@ class ObjDetection:
         if self.model_type == "yolo":
             print("Initializing YOLO Model...")
             # Initialize a YOLO model
-            yolo_path = self.model_path if self.model_path else "tennisball_600_seg_yolo11_v02.pt"
+            yolo_path = _resolve_model_path(self.model_path, "tennisball_600_seg_yolo11_v02.pt")
             self.model = YOLO(yolo_path)
             
             # Save classes to detect (Filter logic for YOLO)
@@ -87,7 +119,7 @@ class ObjDetection:
             print("Initializing Mask R-CNN Model...")
             print("Loading Mask R-CNN weights...")
             # Load specific weights file
-            rcnn_path = self.model_path if self.model_path else "mask_rcnn_final_3.pth"
+            rcnn_path = _resolve_model_path(self.model_path, "mask_rcnn_final_3.pth")
             weights = torch.load(rcnn_path, map_location="cpu")
 
             # Determine number of classes from weights

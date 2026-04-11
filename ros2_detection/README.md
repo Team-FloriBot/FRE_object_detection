@@ -30,6 +30,28 @@ ros2 launch ros2_detection detector.launch.py
 
 ## Topic Interface
 
+## Topic Flow
+
+Use the node in this order:
+
+1. Start the node with `ros2 launch ros2_detection detector.launch.py`.
+2. Publish `/detector/config` with `action: init` to load the model and start the camera.
+3. Watch `/detector/status` for `ready`, `ok`, or `error`.
+4. Watch `/detector/model_info` after a successful init.
+5. Publish `/detector/request` when you want a single detection run.
+6. Read `/detector/results` for the detection payload.
+7. Optionally publish `/detector/config` with `action: stop` or `action: release`.
+
+### Topic Summary
+
+| Topic | Direction | Purpose | Example payload |
+|---|---|---|---|
+| `/detector/config` | publish to node | Init, start, stop, release | `{"action":"init", ...}` |
+| `/detector/request` | publish to node | Trigger one detection pass | `{"classes":["Tennisball"], ...}` |
+| `/detector/status` | subscribe | Status / error messages | `{"level":"ok", "message":"..."}` |
+| `/detector/model_info` | subscribe | Model metadata after init | `{"model_type":"yolo", ...}` |
+| `/detector/results` | subscribe | Detection output after request | `{"ok":true, "detections":[...]}` |
+
 ### Subscriptions
 
 #### `/detector/config` (std_msgs/String with JSON)
@@ -46,7 +68,7 @@ Initialize, start, stop, or release detector.
 {
   "action": "init",
   "model_type": "yolo",
-  "model_path": "tennisball_600_seg_yolo11_v02.pt",
+  "model_path": "models/tennisball_600_seg_yolo11_v02.pt",
   "classes": ["Tennisball"],
   "confidence": 0.5,
   "filters": {
@@ -290,4 +312,18 @@ Terminal 4 (model info):
 source /opt/ros/humble/setup.bash
 source install/setup.bash
 ros2 topic echo /detector/model_info
+```
+
+Terminal 5 (single detection request):
+```bash
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 topic pub -1 /detector/request std_msgs/msg/String "{data: '{\"classes\":[\"Tennisball\"],\"confidence\":0.45,\"max_results\":5}'}"
+```
+
+Terminal 6 (results):
+```bash
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 topic echo /detector/results
 ```

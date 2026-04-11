@@ -1,0 +1,21 @@
+[1.175s] Invoking command in '/workspace/ros2_detection': PYTHONPATH=/workspace/build/ros2_detection/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/workspace/install/ros2_detection/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../build/ros2_detection build --build-base /workspace/build/ros2_detection/build install --record /workspace/build/ros2_detection/install.log --single-version-externally-managed install_data
+[1.810s] running egg_info
+[1.815s] writing ../build/ros2_detection/ros2_detection.egg-info/PKG-INFO
+[1.823s] writing dependency_links to ../build/ros2_detection/ros2_detection.egg-info/dependency_links.txt
+[1.831s] writing entry points to ../build/ros2_detection/ros2_detection.egg-info/entry_points.txt
+[1.836s] writing requirements to ../build/ros2_detection/ros2_detection.egg-info/requires.txt
+[1.841s] writing top-level names to ../build/ros2_detection/ros2_detection.egg-info/top_level.txt
+[1.895s] reading manifest file '../build/ros2_detection/ros2_detection.egg-info/SOURCES.txt'
+[1.986s] writing manifest file '../build/ros2_detection/ros2_detection.egg-info/SOURCES.txt'
+[1.989s] running build
+[1.990s] running build_py
+[2.031s] running install
+[2.032s] running install_lib
+[2.213s] running install_data
+[2.248s] running install_egg_info
+[2.260s] removing '/workspace/install/ros2_detection/lib/python3.10/site-packages/ros2_detection-0.0.1-py3.10.egg-info' (and everything under it)
+[2.313s] Copying ../build/ros2_detection/ros2_detection.egg-info to /workspace/install/ros2_detection/lib/python3.10/site-packages/ros2_detection-0.0.1-py3.10.egg-info
+[2.591s] running install_scripts
+[2.649s] Installing detector_node script to /workspace/install/ros2_detection/lib/ros2_detection
+[2.663s] writing list of installed files to '/workspace/build/ros2_detection/install.log'
+[2.681s] Invoked command in '/workspace/ros2_detection' returned '0': PYTHONPATH=/workspace/build/ros2_detection/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/workspace/install/ros2_detection/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../build/ros2_detection build --build-base /workspace/build/ros2_detection/build install --record /workspace/build/ros2_detection/install.log --single-version-externally-managed install_data
