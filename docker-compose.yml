@@ -1,0 +1,29 @@
+services:
+  detector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ros2_detector
+    environment:
+      - ROS_DOMAIN_ID=0
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+    networks:
+      - ros2_network
+    # Enable GPU support (uncomment if you have NVIDIA GPU)
+    # runtime: nvidia
+    # environment:
+    #   - NVIDIA_VISIBLE_DEVICES=all
+    # For RealSense camera access on Windows/WSL2, mount device
+    # devices:
+    #   - /dev/bus/usb
+    volumes:
+      # Mount model files
+      - ./tennisball_600_seg_yolo11_v02.pt:/root/project/tennisball_600_seg_yolo11_v02.pt:ro
+      - ./yolo11m-seg.pt:/root/project/yolo11m-seg.pt:ro
+      - ./imageset:/root/project/imageset:ro
+    stdin_open: true
+    tty: true
+
+networks:
+  ros2_network:
+    driver: bridge

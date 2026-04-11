@@ -1,0 +1,16 @@
+services:
+  devcontainer:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: ros2_detector_dev
+    command: /bin/bash -lc "while sleep 1000; do :; done"
+    environment:
+      - ROS_DOMAIN_ID=0
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      - DETECTION_PROJECT_ROOT=/workspace
+    volumes:
+      - ..:/workspace:cached
+    working_dir: /workspace
+    stdin_open: true
+    tty: true

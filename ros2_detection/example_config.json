@@ -1,0 +1,18 @@
+{
+  "action": "init",
+  "model_type": "yolo",
+  "model_path": "tennisball_600_seg_yolo11_v02.pt",
+  "classes": ["Tennisball"],
+  "confidence": 0.5,
+  "filters": {
+    "use_decimation": false,
+    "use_spatial": false,
+    "use_temporal": true,
+    "use_hole_filling": true,
+    "use_mask_filter": true
+  },
+  "camera": {
+    "color_resolution": [640, 480],
+    "fps": 30
+  }
+}

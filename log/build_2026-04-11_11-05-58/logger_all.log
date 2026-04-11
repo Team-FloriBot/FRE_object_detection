@@ -1,0 +1,421 @@
+[0.163s] DEBUG:colcon:Command line arguments: ['/usr/bin/colcon', 'build', '--packages-select', 'ros2_detection']
+[0.163s] DEBUG:colcon:Parsed command line arguments: Namespace(log_base=None, log_level=None, verb_name='build', build_base='build', install_base='install', merge_install=False, symlink_install=False, test_result_base=None, continue_on_error=False, executor='parallel', parallel_workers=16, event_handlers=None, ignore_user_meta=False, metas=['./colcon.meta'], base_paths=['.'], packages_ignore=None, packages_ignore_regex=None, paths=None, packages_up_to=None, packages_up_to_regex=None, packages_above=None, packages_above_and_dependencies=None, packages_above_depth=None, packages_select_by_dep=None, packages_skip_by_dep=None, packages_skip_up_to=None, packages_select_build_failed=False, packages_skip_build_finished=False, packages_select_test_failures=False, packages_skip_test_passed=False, packages_select=['ros2_detection'], packages_skip=None, packages_select_regex=None, packages_skip_regex=None, packages_start=None, packages_end=None, cmake_args=None, cmake_target=None, cmake_target_skip_unavailable=False, cmake_clean_cache=False, cmake_clean_first=False, cmake_force_configure=False, ament_cmake_args=None, catkin_cmake_args=None, catkin_skip_building_tests=False, mixin_files=None, mixin=None, verb_parser=<colcon_mixin.mixin.mixin_argument.MixinArgumentDecorator object at 0x7be3b37ef220>, verb_extension=<colcon_core.verb.build.BuildVerb object at 0x7be3b37eeb90>, main=<bound method BuildVerb.main of <colcon_core.verb.build.BuildVerb object at 0x7be3b37eeb90>>, mixin_verb=('build',))
+[0.290s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) check parameters
+[0.292s] INFO:colcon.colcon_metadata.package_discovery.colcon_meta:Using configuration from '/root/.colcon/metadata/default/Gazebo.meta'
+[0.292s] INFO:colcon.colcon_metadata.package_discovery.colcon_meta:Using configuration from '/root/.colcon/metadata/default/fastdds.meta'
+[0.293s] INFO:colcon.colcon_metadata.package_discovery.colcon_meta:Using configuration from '/root/.colcon/metadata/default/fastrtps.meta'
+[0.294s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) check parameters
+[0.295s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) check parameters
+[0.295s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) check parameters
+[0.295s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) discover
+[0.296s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) discover
+[0.296s] INFO:colcon.colcon_core.package_discovery:Crawling recursively for packages in '/workspace'
+[0.297s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ignore', 'ignore_ament_install']
+[0.298s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore'
+[0.298s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore_ament_install'
+[0.298s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_pkg']
+[0.298s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_pkg'
+[0.299s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_meta']
+[0.299s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_meta'
+[0.299s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ros']
+[0.299s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ros'
+[0.324s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['cmake', 'python']
+[0.324s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'cmake'
+[0.324s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python'
+[0.325s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['python_setup_py']
+[0.325s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python_setup_py'
+[0.327s] Level 1:colcon.colcon_core.package_identification:_identify(__pycache__) by extensions ['ignore', 'ignore_ament_install']
+[0.327s] Level 1:colcon.colcon_core.package_identification:_identify(__pycache__) by extension 'ignore'
+[0.328s] Level 1:colcon.colcon_core.package_identification:_identify(__pycache__) by extension 'ignore_ament_install'
+[0.329s] Level 1:colcon.colcon_core.package_identification:_identify(__pycache__) by extensions ['colcon_pkg']
+[0.329s] Level 1:colcon.colcon_core.package_identification:_identify(__pycache__) by extension 'colcon_pkg'
+[0.329s] Level 1:colcon.colcon_core.package_identification:_identify(__pycache__) by extensions ['colcon_meta']
+[0.330s] Level 1:colcon.colcon_core.package_identification:_identify(__pycache__) by extension 'colcon_meta'
+[0.330s] Level 1:colcon.colcon_core.package_identification:_identify(__pycache__) by extensions ['ros']
+[0.331s] Level 1:colcon.colcon_core.package_identification:_identify(__pycache__) by extension 'ros'
+[0.333s] Level 1:colcon.colcon_core.package_identification:_identify(__pycache__) by extensions ['cmake', 'python']
+[0.333s] Level 1:colcon.colcon_core.package_identification:_identify(__pycache__) by extension 'cmake'
+[0.333s] Level 1:colcon.colcon_core.package_identification:_identify(__pycache__) by extension 'python'
+[0.334s] Level 1:colcon.colcon_core.package_identification:_identify(__pycache__) by extensions ['python_setup_py']
+[0.334s] Level 1:colcon.colcon_core.package_identification:_identify(__pycache__) by extension 'python_setup_py'
+[0.335s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extensions ['ignore', 'ignore_ament_install']
+[0.335s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extension 'ignore'
+[0.336s] Level 1:colcon.colcon_core.package_identification:_identify(build) ignored
+[0.337s] Level 1:colcon.colcon_core.package_identification:_identify(imageset) by extensions ['ignore', 'ignore_ament_install']
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(imageset) by extension 'ignore'
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(imageset) by extension 'ignore_ament_install'
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(imageset) by extensions ['colcon_pkg']
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(imageset) by extension 'colcon_pkg'
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(imageset) by extensions ['colcon_meta']
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(imageset) by extension 'colcon_meta'
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(imageset) by extensions ['ros']
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(imageset) by extension 'ros'
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(imageset) by extensions ['cmake', 'python']
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(imageset) by extension 'cmake'
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(imageset) by extension 'python'
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(imageset) by extensions ['python_setup_py']
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(imageset) by extension 'python_setup_py'
+[0.346s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11) by extensions ['ignore', 'ignore_ament_install']
+[0.346s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11) by extension 'ignore'
+[0.346s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11) by extension 'ignore_ament_install'
+[0.352s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11) by extensions ['colcon_pkg']
+[0.352s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11) by extension 'colcon_pkg'
+[0.353s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11) by extensions ['colcon_meta']
+[0.353s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11) by extension 'colcon_meta'
+[0.354s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11) by extensions ['ros']
+[0.354s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11) by extension 'ros'
+[0.356s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11) by extensions ['cmake', 'python']
+[0.357s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11) by extension 'cmake'
+[0.357s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11) by extension 'python'
+[0.358s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11) by extensions ['python_setup_py']
+[0.358s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11) by extension 'python_setup_py'
+[0.362s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test) by extensions ['ignore', 'ignore_ament_install']
+[0.362s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test) by extension 'ignore'
+[0.363s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test) by extension 'ignore_ament_install'
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test) by extensions ['colcon_pkg']
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test) by extension 'colcon_pkg'
+[0.366s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test) by extensions ['colcon_meta']
+[0.366s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test) by extension 'colcon_meta'
+[0.367s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test) by extensions ['ros']
+[0.367s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test) by extension 'ros'
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test) by extensions ['cmake', 'python']
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test) by extension 'cmake'
+[0.372s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test) by extension 'python'
+[0.373s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test) by extensions ['python_setup_py']
+[0.373s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test) by extension 'python_setup_py'
+[0.382s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/images) by extensions ['ignore', 'ignore_ament_install']
+[0.383s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/images) by extension 'ignore'
+[0.385s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/images) by extension 'ignore_ament_install'
+[0.390s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/images) by extensions ['colcon_pkg']
+[0.391s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/images) by extension 'colcon_pkg'
+[0.393s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/images) by extensions ['colcon_meta']
+[0.393s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/images) by extension 'colcon_meta'
+[0.398s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/images) by extensions ['ros']
+[0.398s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/images) by extension 'ros'
+[0.405s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/images) by extensions ['cmake', 'python']
+[0.405s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/images) by extension 'cmake'
+[0.407s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/images) by extension 'python'
+[0.409s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/images) by extensions ['python_setup_py']
+[0.409s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/images) by extension 'python_setup_py'
+[0.416s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/labels) by extensions ['ignore', 'ignore_ament_install']
+[0.416s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/labels) by extension 'ignore'
+[0.418s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/labels) by extension 'ignore_ament_install'
+[0.420s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/labels) by extensions ['colcon_pkg']
+[0.421s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/labels) by extension 'colcon_pkg'
+[0.422s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/labels) by extensions ['colcon_meta']
+[0.422s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/labels) by extension 'colcon_meta'
+[0.426s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/labels) by extensions ['ros']
+[0.426s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/labels) by extension 'ros'
+[0.434s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/labels) by extensions ['cmake', 'python']
+[0.434s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/labels) by extension 'cmake'
+[0.436s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/labels) by extension 'python'
+[0.437s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/labels) by extensions ['python_setup_py']
+[0.437s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/test/labels) by extension 'python_setup_py'
+[0.442s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train) by extensions ['ignore', 'ignore_ament_install']
+[0.442s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train) by extension 'ignore'
+[0.443s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train) by extension 'ignore_ament_install'
+[0.445s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train) by extensions ['colcon_pkg']
+[0.445s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train) by extension 'colcon_pkg'
+[0.447s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train) by extensions ['colcon_meta']
+[0.447s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train) by extension 'colcon_meta'
+[0.449s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train) by extensions ['ros']
+[0.449s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train) by extension 'ros'
+[0.455s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train) by extensions ['cmake', 'python']
+[0.455s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train) by extension 'cmake'
+[0.456s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train) by extension 'python'
+[0.458s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train) by extensions ['python_setup_py']
+[0.458s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train) by extension 'python_setup_py'
+[0.470s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/images) by extensions ['ignore', 'ignore_ament_install']
+[0.470s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/images) by extension 'ignore'
+[0.472s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/images) by extension 'ignore_ament_install'
+[0.475s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/images) by extensions ['colcon_pkg']
+[0.475s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/images) by extension 'colcon_pkg'
+[0.477s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/images) by extensions ['colcon_meta']
+[0.477s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/images) by extension 'colcon_meta'
+[0.481s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/images) by extensions ['ros']
+[0.481s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/images) by extension 'ros'
+[0.489s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/images) by extensions ['cmake', 'python']
+[0.489s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/images) by extension 'cmake'
+[0.490s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/images) by extension 'python'
+[0.492s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/images) by extensions ['python_setup_py']
+[0.492s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/images) by extension 'python_setup_py'
+[0.507s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/labels) by extensions ['ignore', 'ignore_ament_install']
+[0.507s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/labels) by extension 'ignore'
+[0.508s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/labels) by extension 'ignore_ament_install'
+[0.511s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/labels) by extensions ['colcon_pkg']
+[0.511s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/labels) by extension 'colcon_pkg'
+[0.512s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/labels) by extensions ['colcon_meta']
+[0.512s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/labels) by extension 'colcon_meta'
+[0.515s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/labels) by extensions ['ros']
+[0.515s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/labels) by extension 'ros'
+[0.524s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/labels) by extensions ['cmake', 'python']
+[0.524s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/labels) by extension 'cmake'
+[0.525s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/labels) by extension 'python'
+[0.528s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/labels) by extensions ['python_setup_py']
+[0.529s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/train/labels) by extension 'python_setup_py'
+[0.534s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid) by extensions ['ignore', 'ignore_ament_install']
+[0.534s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid) by extension 'ignore'
+[0.535s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid) by extension 'ignore_ament_install'
+[0.537s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid) by extensions ['colcon_pkg']
+[0.537s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid) by extension 'colcon_pkg'
+[0.538s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid) by extensions ['colcon_meta']
+[0.538s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid) by extension 'colcon_meta'
+[0.541s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid) by extensions ['ros']
+[0.541s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid) by extension 'ros'
+[0.546s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid) by extensions ['cmake', 'python']
+[0.546s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid) by extension 'cmake'
+[0.548s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid) by extension 'python'
+[0.549s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid) by extensions ['python_setup_py']
+[0.549s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid) by extension 'python_setup_py'
+[0.557s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/images) by extensions ['ignore', 'ignore_ament_install']
+[0.557s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/images) by extension 'ignore'
+[0.558s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/images) by extension 'ignore_ament_install'
+[0.560s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/images) by extensions ['colcon_pkg']
+[0.561s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/images) by extension 'colcon_pkg'
+[0.562s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/images) by extensions ['colcon_meta']
+[0.562s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/images) by extension 'colcon_meta'
+[0.565s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/images) by extensions ['ros']
+[0.566s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/images) by extension 'ros'
+[0.571s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/images) by extensions ['cmake', 'python']
+[0.571s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/images) by extension 'cmake'
+[0.572s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/images) by extension 'python'
+[0.573s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/images) by extensions ['python_setup_py']
+[0.573s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/images) by extension 'python_setup_py'
+[0.600s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/labels) by extensions ['ignore', 'ignore_ament_install']
+[0.600s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/labels) by extension 'ignore'
+[0.602s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/labels) by extension 'ignore_ament_install'
+[0.605s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/labels) by extensions ['colcon_pkg']
+[0.606s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/labels) by extension 'colcon_pkg'
+[0.610s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/labels) by extensions ['colcon_meta']
+[0.611s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/labels) by extension 'colcon_meta'
+[0.624s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/labels) by extensions ['ros']
+[0.624s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/labels) by extension 'ros'
+[0.638s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/labels) by extensions ['cmake', 'python']
+[0.638s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/labels) by extension 'cmake'
+[0.642s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/labels) by extension 'python'
+[0.646s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/labels) by extensions ['python_setup_py']
+[0.646s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v1-tennisball-seg-dataset-607.yolov11/valid/labels) by extension 'python_setup_py'
+[0.656s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11) by extensions ['ignore', 'ignore_ament_install']
+[0.656s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11) by extension 'ignore'
+[0.658s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11) by extension 'ignore_ament_install'
+[0.662s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11) by extensions ['colcon_pkg']
+[0.663s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11) by extension 'colcon_pkg'
+[0.666s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11) by extensions ['colcon_meta']
+[0.666s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11) by extension 'colcon_meta'
+[0.669s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11) by extensions ['ros']
+[0.670s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11) by extension 'ros'
+[0.685s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11) by extensions ['cmake', 'python']
+[0.685s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11) by extension 'cmake'
+[0.687s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11) by extension 'python'
+[0.688s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11) by extensions ['python_setup_py']
+[0.688s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11) by extension 'python_setup_py'
+[0.705s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test) by extensions ['ignore', 'ignore_ament_install']
+[0.706s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test) by extension 'ignore'
+[0.708s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test) by extension 'ignore_ament_install'
+[0.715s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test) by extensions ['colcon_pkg']
+[0.716s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test) by extension 'colcon_pkg'
+[0.719s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test) by extensions ['colcon_meta']
+[0.719s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test) by extension 'colcon_meta'
+[0.721s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test) by extensions ['ros']
+[0.721s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test) by extension 'ros'
+[0.727s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test) by extensions ['cmake', 'python']
+[0.727s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test) by extension 'cmake'
+[0.728s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test) by extension 'python'
+[0.729s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test) by extensions ['python_setup_py']
+[0.729s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test) by extension 'python_setup_py'
+[0.736s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/images) by extensions ['ignore', 'ignore_ament_install']
+[0.737s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/images) by extension 'ignore'
+[0.738s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/images) by extension 'ignore_ament_install'
+[0.741s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/images) by extensions ['colcon_pkg']
+[0.741s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/images) by extension 'colcon_pkg'
+[0.743s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/images) by extensions ['colcon_meta']
+[0.743s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/images) by extension 'colcon_meta'
+[0.748s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/images) by extensions ['ros']
+[0.749s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/images) by extension 'ros'
+[0.756s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/images) by extensions ['cmake', 'python']
+[0.757s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/images) by extension 'cmake'
+[0.758s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/images) by extension 'python'
+[0.760s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/images) by extensions ['python_setup_py']
+[0.760s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/images) by extension 'python_setup_py'
+[0.766s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/labels) by extensions ['ignore', 'ignore_ament_install']
+[0.767s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/labels) by extension 'ignore'
+[0.768s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/labels) by extension 'ignore_ament_install'
+[0.771s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/labels) by extensions ['colcon_pkg']
+[0.771s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/labels) by extension 'colcon_pkg'
+[0.773s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/labels) by extensions ['colcon_meta']
+[0.773s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/labels) by extension 'colcon_meta'
+[0.777s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/labels) by extensions ['ros']
+[0.778s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/labels) by extension 'ros'
+[0.783s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/labels) by extensions ['cmake', 'python']
+[0.783s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/labels) by extension 'cmake'
+[0.784s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/labels) by extension 'python'
+[0.785s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/labels) by extensions ['python_setup_py']
+[0.785s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/test/labels) by extension 'python_setup_py'
+[0.789s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train) by extensions ['ignore', 'ignore_ament_install']
+[0.789s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train) by extension 'ignore'
+[0.791s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train) by extension 'ignore_ament_install'
+[0.793s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train) by extensions ['colcon_pkg']
+[0.793s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train) by extension 'colcon_pkg'
+[0.795s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train) by extensions ['colcon_meta']
+[0.795s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train) by extension 'colcon_meta'
+[0.798s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train) by extensions ['ros']
+[0.798s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train) by extension 'ros'
+[0.804s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train) by extensions ['cmake', 'python']
+[0.804s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train) by extension 'cmake'
+[0.805s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train) by extension 'python'
+[0.806s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train) by extensions ['python_setup_py']
+[0.806s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train) by extension 'python_setup_py'
+[0.823s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/images) by extensions ['ignore', 'ignore_ament_install']
+[0.823s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/images) by extension 'ignore'
+[0.825s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/images) by extension 'ignore_ament_install'
+[0.829s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/images) by extensions ['colcon_pkg']
+[0.829s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/images) by extension 'colcon_pkg'
+[0.831s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/images) by extensions ['colcon_meta']
+[0.831s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/images) by extension 'colcon_meta'
+[0.835s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/images) by extensions ['ros']
+[0.835s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/images) by extension 'ros'
+[0.840s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/images) by extensions ['cmake', 'python']
+[0.840s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/images) by extension 'cmake'
+[0.842s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/images) by extension 'python'
+[0.844s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/images) by extensions ['python_setup_py']
+[0.844s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/images) by extension 'python_setup_py'
+[0.861s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/labels) by extensions ['ignore', 'ignore_ament_install']
+[0.861s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/labels) by extension 'ignore'
+[0.866s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/labels) by extension 'ignore_ament_install'
+[0.870s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/labels) by extensions ['colcon_pkg']
+[0.870s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/labels) by extension 'colcon_pkg'
+[0.872s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/labels) by extensions ['colcon_meta']
+[0.872s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/labels) by extension 'colcon_meta'
+[0.877s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/labels) by extensions ['ros']
+[0.877s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/labels) by extension 'ros'
+[0.885s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/labels) by extensions ['cmake', 'python']
+[0.885s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/labels) by extension 'cmake'
+[0.886s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/labels) by extension 'python'
+[0.889s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/labels) by extensions ['python_setup_py']
+[0.889s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/train/labels) by extension 'python_setup_py'
+[0.895s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid) by extensions ['ignore', 'ignore_ament_install']
+[0.895s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid) by extension 'ignore'
+[0.897s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid) by extension 'ignore_ament_install'
+[0.899s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid) by extensions ['colcon_pkg']
+[0.899s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid) by extension 'colcon_pkg'
+[0.901s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid) by extensions ['colcon_meta']
+[0.901s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid) by extension 'colcon_meta'
+[0.904s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid) by extensions ['ros']
+[0.904s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid) by extension 'ros'
+[0.909s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid) by extensions ['cmake', 'python']
+[0.910s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid) by extension 'cmake'
+[0.911s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid) by extension 'python'
+[0.911s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid) by extensions ['python_setup_py']
+[0.912s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid) by extension 'python_setup_py'
+[0.919s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/images) by extensions ['ignore', 'ignore_ament_install']
+[0.919s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/images) by extension 'ignore'
+[0.921s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/images) by extension 'ignore_ament_install'
+[0.923s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/images) by extensions ['colcon_pkg']
+[0.924s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/images) by extension 'colcon_pkg'
+[0.925s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/images) by extensions ['colcon_meta']
+[0.925s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/images) by extension 'colcon_meta'
+[0.929s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/images) by extensions ['ros']
+[0.929s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/images) by extension 'ros'
+[0.937s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/images) by extensions ['cmake', 'python']
+[0.937s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/images) by extension 'cmake'
+[0.939s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/images) by extension 'python'
+[0.940s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/images) by extensions ['python_setup_py']
+[0.940s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/images) by extension 'python_setup_py'
+[0.946s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/labels) by extensions ['ignore', 'ignore_ament_install']
+[0.946s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/labels) by extension 'ignore'
+[0.948s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/labels) by extension 'ignore_ament_install'
+[0.951s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/labels) by extensions ['colcon_pkg']
+[0.951s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/labels) by extension 'colcon_pkg'
+[0.953s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/labels) by extensions ['colcon_meta']
+[0.953s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/labels) by extension 'colcon_meta'
+[0.957s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/labels) by extensions ['ros']
+[0.957s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/labels) by extension 'ros'
+[0.964s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/labels) by extensions ['cmake', 'python']
+[0.964s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/labels) by extension 'cmake'
+[0.966s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/labels) by extension 'python'
+[0.967s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/labels) by extensions ['python_setup_py']
+[0.967s] Level 1:colcon.colcon_core.package_identification:_identify(imageset/Tennisball_seg_600.v2-tennisball-seg-dataset-607-v02.yolov11/valid/labels) by extension 'python_setup_py'
+[0.971s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extensions ['ignore', 'ignore_ament_install']
+[0.971s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extension 'ignore'
+[0.972s] Level 1:colcon.colcon_core.package_identification:_identify(install) ignored
+[0.975s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extensions ['ignore', 'ignore_ament_install']
+[0.975s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extension 'ignore'
+[0.975s] Level 1:colcon.colcon_core.package_identification:_identify(log) ignored
+[0.977s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_detection) by extensions ['ignore', 'ignore_ament_install']
+[0.977s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_detection) by extension 'ignore'
+[0.977s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_detection) by extension 'ignore_ament_install'
+[0.978s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_detection) by extensions ['colcon_pkg']
+[0.978s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_detection) by extension 'colcon_pkg'
+[0.979s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_detection) by extensions ['colcon_meta']
+[0.979s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_detection) by extension 'colcon_meta'
+[0.980s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_detection) by extensions ['ros']
+[0.980s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_detection) by extension 'ros'
+[0.991s] DEBUG:colcon.colcon_core.package_identification:Package 'ros2_detection' with type 'ros.ament_python' and name 'ros2_detection'
+[0.991s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) using defaults
+[0.991s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) discover
+[0.991s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) using defaults
+[0.991s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) discover
+[0.991s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) using defaults
+[1.020s] Level 5:colcon.colcon_core.verb:set package 'ros2_detection' build argument 'cmake_args' from command line to 'None'
+[1.020s] Level 5:colcon.colcon_core.verb:set package 'ros2_detection' build argument 'cmake_target' from command line to 'None'
+[1.020s] Level 5:colcon.colcon_core.verb:set package 'ros2_detection' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.020s] Level 5:colcon.colcon_core.verb:set package 'ros2_detection' build argument 'cmake_clean_cache' from command line to 'False'
+[1.021s] Level 5:colcon.colcon_core.verb:set package 'ros2_detection' build argument 'cmake_clean_first' from command line to 'False'
+[1.021s] Level 5:colcon.colcon_core.verb:set package 'ros2_detection' build argument 'cmake_force_configure' from command line to 'False'
+[1.021s] Level 5:colcon.colcon_core.verb:set package 'ros2_detection' build argument 'ament_cmake_args' from command line to 'None'
+[1.021s] Level 5:colcon.colcon_core.verb:set package 'ros2_detection' build argument 'catkin_cmake_args' from command line to 'None'
+[1.021s] Level 5:colcon.colcon_core.verb:set package 'ros2_detection' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.022s] DEBUG:colcon.colcon_core.verb:Building package 'ros2_detection' with the following arguments: {'ament_cmake_args': None, 'build_base': '/workspace/build/ros2_detection', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/workspace/install/ros2_detection', 'merge_install': False, 'path': '/workspace/ros2_detection', 'symlink_install': False, 'test_result_base': None}
+[1.022s] INFO:colcon.colcon_core.executor:Executing jobs using 'parallel' executor
+[1.023s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete
+[1.023s] INFO:colcon.colcon_ros.task.ament_python.build:Building ROS package in '/workspace/ros2_detection' with build type 'ament_python'
+[1.024s] Level 1:colcon.colcon_core.shell:create_environment_hook('ros2_detection', 'ament_prefix_path')
+[1.030s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_core.shell.bat': Not used on non-Windows systems
+[1.030s] INFO:colcon.colcon_core.shell:Creating environment hook '/workspace/install/ros2_detection/share/ros2_detection/hook/ament_prefix_path.ps1'
+[1.045s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/workspace/install/ros2_detection/share/ros2_detection/hook/ament_prefix_path.dsv'
+[1.058s] INFO:colcon.colcon_core.shell:Creating environment hook '/workspace/install/ros2_detection/share/ros2_detection/hook/ament_prefix_path.sh'
+[1.070s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.070s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.285s] INFO:colcon.colcon_core.task.python.build:Building Python package in '/workspace/ros2_detection'
+[1.286s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.287s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[2.112s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/workspace/ros2_detection': PYTHONPATH=/workspace/build/ros2_detection/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/workspace/install/ros2_detection/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../build/ros2_detection build --build-base /workspace/build/ros2_detection/build install --record /workspace/build/ros2_detection/install.log --single-version-externally-managed install_data
+[3.531s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/workspace/ros2_detection' returned '0': PYTHONPATH=/workspace/build/ros2_detection/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/workspace/install/ros2_detection/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../build/ros2_detection build --build-base /workspace/build/ros2_detection/build install --record /workspace/build/ros2_detection/install.log --single-version-externally-managed install_data
+[3.535s] Level 1:colcon.colcon_core.environment:checking '/workspace/install/ros2_detection' for CMake module files
+[3.578s] Level 1:colcon.colcon_core.environment:checking '/workspace/install/ros2_detection' for CMake config files
+[3.653s] Level 1:colcon.colcon_core.environment:checking '/workspace/install/ros2_detection/lib'
+[3.657s] Level 1:colcon.colcon_core.environment:checking '/workspace/install/ros2_detection/bin'
+[3.658s] Level 1:colcon.colcon_core.environment:checking '/workspace/install/ros2_detection/lib/pkgconfig/ros2_detection.pc'
+[3.659s] Level 1:colcon.colcon_core.environment:checking '/workspace/install/ros2_detection/lib/python3.10/site-packages'
+[3.664s] Level 1:colcon.colcon_core.shell:create_environment_hook('ros2_detection', 'pythonpath')
+[3.664s] INFO:colcon.colcon_core.shell:Creating environment hook '/workspace/install/ros2_detection/share/ros2_detection/hook/pythonpath.ps1'
+[3.677s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/workspace/install/ros2_detection/share/ros2_detection/hook/pythonpath.dsv'
+[3.695s] INFO:colcon.colcon_core.shell:Creating environment hook '/workspace/install/ros2_detection/share/ros2_detection/hook/pythonpath.sh'
+[3.708s] Level 1:colcon.colcon_core.environment:checking '/workspace/install/ros2_detection/bin'
+[3.712s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(ros2_detection)
+[3.713s] INFO:colcon.colcon_core.shell:Creating package script '/workspace/install/ros2_detection/share/ros2_detection/package.ps1'
+[3.724s] INFO:colcon.colcon_core.shell:Creating package descriptor '/workspace/install/ros2_detection/share/ros2_detection/package.dsv'
+[3.734s] INFO:colcon.colcon_core.shell:Creating package script '/workspace/install/ros2_detection/share/ros2_detection/package.sh'
+[3.745s] INFO:colcon.colcon_core.shell:Creating package script '/workspace/install/ros2_detection/share/ros2_detection/package.bash'
+[3.758s] INFO:colcon.colcon_core.shell:Creating package script '/workspace/install/ros2_detection/share/ros2_detection/package.zsh'
+[3.768s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/workspace/install/ros2_detection/share/colcon-core/packages/ros2_detection)
+[3.772s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:closing loop
+[3.773s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:loop closed
+[3.773s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete finished with '0'
+[3.774s] DEBUG:colcon.colcon_core.event_reactor:joining thread
+[3.795s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.notify_send': Could not find 'notify-send'
+[3.795s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.terminal_notifier': Not used on non-Darwin systems
+[3.796s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.win32': Not used on non-Windows systems
+[3.796s] INFO:colcon.colcon_notification.desktop_notification:Sending desktop notification using 'notify2'
+[3.796s] DEBUG:colcon.colcon_notification.desktop_notification.notify2:Failed to initialize notify2: org.freedesktop.DBus.Error.InvalidFileContent: D-Bus library appears to be incorrectly set up: see the manual page for dbus-uuidgen to correct this issue. (Failed to open "/var/lib/dbus/machine-id": No such file or directory; UUID file '/etc/machine-id' should contain a hex string of length 32, not length 0, with no other text)
+[3.797s] DEBUG:colcon.colcon_core.event_reactor:joined thread
+[3.797s] INFO:colcon.colcon_core.shell:Creating prefix script '/workspace/install/local_setup.ps1'
+[3.806s] INFO:colcon.colcon_core.shell:Creating prefix util module '/workspace/install/_local_setup_util_ps1.py'
+[3.813s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/workspace/install/setup.ps1'
+[3.819s] INFO:colcon.colcon_core.shell:Creating prefix script '/workspace/install/local_setup.sh'
+[3.824s] INFO:colcon.colcon_core.shell:Creating prefix util module '/workspace/install/_local_setup_util_sh.py'
+[3.828s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/workspace/install/setup.sh'
+[3.838s] INFO:colcon.colcon_core.shell:Creating prefix script '/workspace/install/local_setup.bash'
+[3.843s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/workspace/install/setup.bash'
+[3.847s] INFO:colcon.colcon_core.shell:Creating prefix script '/workspace/install/local_setup.zsh'
+[3.852s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/workspace/install/setup.zsh'

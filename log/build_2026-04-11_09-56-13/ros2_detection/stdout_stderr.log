@@ -1,0 +1,37 @@
+running egg_info
+creating ../build/ros2_detection/ros2_detection.egg-info
+writing ../build/ros2_detection/ros2_detection.egg-info/PKG-INFO
+writing dependency_links to ../build/ros2_detection/ros2_detection.egg-info/dependency_links.txt
+writing entry points to ../build/ros2_detection/ros2_detection.egg-info/entry_points.txt
+writing requirements to ../build/ros2_detection/ros2_detection.egg-info/requires.txt
+writing top-level names to ../build/ros2_detection/ros2_detection.egg-info/top_level.txt
+writing manifest file '../build/ros2_detection/ros2_detection.egg-info/SOURCES.txt'
+reading manifest file '../build/ros2_detection/ros2_detection.egg-info/SOURCES.txt'
+writing manifest file '../build/ros2_detection/ros2_detection.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /workspace/build/ros2_detection/build
+creating /workspace/build/ros2_detection/build/lib
+creating /workspace/build/ros2_detection/build/lib/ros2_detection
+copying ros2_detection/detector_node.py -> /workspace/build/ros2_detection/build/lib/ros2_detection
+copying ros2_detection/__init__.py -> /workspace/build/ros2_detection/build/lib/ros2_detection
+running install
+running install_lib
+creating /workspace/install/ros2_detection/lib/python3.10/site-packages/ros2_detection
+copying /workspace/build/ros2_detection/build/lib/ros2_detection/detector_node.py -> /workspace/install/ros2_detection/lib/python3.10/site-packages/ros2_detection
+copying /workspace/build/ros2_detection/build/lib/ros2_detection/__init__.py -> /workspace/install/ros2_detection/lib/python3.10/site-packages/ros2_detection
+byte-compiling /workspace/install/ros2_detection/lib/python3.10/site-packages/ros2_detection/detector_node.py to detector_node.cpython-310.pyc
+byte-compiling /workspace/install/ros2_detection/lib/python3.10/site-packages/ros2_detection/__init__.py to __init__.cpython-310.pyc
+running install_data
+creating /workspace/install/ros2_detection/share/ament_index
+creating /workspace/install/ros2_detection/share/ament_index/resource_index
+creating /workspace/install/ros2_detection/share/ament_index/resource_index/packages
+copying resource/ros2_detection -> /workspace/install/ros2_detection/share/ament_index/resource_index/packages
+copying package.xml -> /workspace/install/ros2_detection/share/ros2_detection
+creating /workspace/install/ros2_detection/share/ros2_detection/launch
+copying launch/detector.launch.py -> /workspace/install/ros2_detection/share/ros2_detection/launch
+running install_egg_info
+Copying ../build/ros2_detection/ros2_detection.egg-info to /workspace/install/ros2_detection/lib/python3.10/site-packages/ros2_detection-0.0.1-py3.10.egg-info
+running install_scripts
+Installing detector_node script to /workspace/install/ros2_detection/lib/ros2_detection
+writing list of installed files to '/workspace/build/ros2_detection/install.log'

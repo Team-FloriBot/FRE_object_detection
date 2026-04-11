@@ -1,0 +1,12 @@
+Metadata-Version: 2.1
+Name: ros2-detection
+Version: 0.0.1
+Summary: ROS2 detector node for YOLO/Mask R-CNN object detection with RealSense depth fusion
+Home-page: UNKNOWN
+Maintainer: Aaron Stark
+Maintainer-email: aaron.stark@example.com
+License: MIT
+Platform: UNKNOWN
+
+UNKNOWN
+

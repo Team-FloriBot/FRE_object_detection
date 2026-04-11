@@ -1,0 +1,92 @@
+[0.000000] (-) TimerEvent: {}
+[0.001078] (ros2_detection) JobQueued: {'identifier': 'ros2_detection', 'dependencies': OrderedDict()}
+[0.001559] (ros2_detection) JobStarted: {'identifier': 'ros2_detection'}
+[0.097154] (-) TimerEvent: {}
+[0.197853] (-) TimerEvent: {}
+[0.298479] (-) TimerEvent: {}
+[0.398976] (-) TimerEvent: {}
+[0.499905] (-) TimerEvent: {}
+[0.600533] (-) TimerEvent: {}
+[0.701374] (-) TimerEvent: {}
+[0.801972] (-) TimerEvent: {}
+[0.902918] (-) TimerEvent: {}
+[1.003633] (-) TimerEvent: {}
+[1.104232] (-) TimerEvent: {}
+[1.205072] (-) TimerEvent: {}
+[1.305798] (-) TimerEvent: {}
+[1.406290] (-) TimerEvent: {}
+[1.507076] (-) TimerEvent: {}
+[1.607970] (-) TimerEvent: {}
+[1.637588] (ros2_detection) Command: {'cmd': ['/usr/bin/python3', '-W', 'ignore:setup.py install is deprecated', '-W', 'ignore:easy_install command is deprecated', 'setup.py', 'egg_info', '--egg-base', '../build/ros2_detection', 'build', '--build-base', '/workspace/build/ros2_detection/build', 'install', '--record', '/workspace/build/ros2_detection/install.log', '--single-version-externally-managed', 'install_data'], 'cwd': '/workspace/ros2_detection', 'env': {'DETECTION_PROJECT_ROOT': '/workspace', 'HOSTNAME': '86920718ac4a', 'SHLVL': '2', 'LD_LIBRARY_PATH': '/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib', 'HOME': '/root', 'OLDPWD': '/workspace', 'ROS_PYTHON_VERSION': '3', 'REMOTE_CONTAINERS': 'true', 'COLCON_PREFIX_PATH': '/root/ros2_ws/install', 'ROS_DISTRO': 'humble', 'REMOTE_CONTAINERS_IPC': '/tmp/vscode-remote-containers-ipc-2b493ac8-9f24-44bf-a42d-746c763fb501.sock', '_': '/usr/bin/colcon', 'ROS_VERSION': '2', 'TERM': 'xterm', 'ROS_LOCALHOST_ONLY': '0', 'PATH': '/opt/ros/humble/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin', 'REMOTE_CONTAINERS_SOCKETS': '["/tmp/.X11-unix/X0","/root/.gnupg/S.gpg-agent"]', 'DISPLAY': ':0', 'LANG': 'C.UTF-8', 'RMW_IMPLEMENTATION': 'rmw_fastrtps_cpp', 'LS_COLORS': '', 'ROS_DOMAIN_ID': '0', 'AMENT_PREFIX_PATH': '/root/ros2_ws/install/ros2_detection:/opt/ros/humble', 'REMOTE_CONTAINERS_DISPLAY_SOCK': '/tmp/.X11-unix/X0', 'PWD': '/workspace/build/ros2_detection', 'LC_ALL': 'C.UTF-8', 'PYTHONPATH': '/workspace/build/ros2_detection/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/workspace/install/ros2_detection/lib/python3.10/site-packages:/root/ros2_ws/install/ros2_detection/lib/python3.10/site-packages:/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages', 'COLCON': '1'}, 'shell': False}
+[1.708072] (-) TimerEvent: {}
+[1.809072] (-) TimerEvent: {}
+[1.909905] (-) TimerEvent: {}
+[2.010981] (-) TimerEvent: {}
+[2.111634] (-) TimerEvent: {}
+[2.212245] (-) TimerEvent: {}
+[2.312749] (-) TimerEvent: {}
+[2.413710] (-) TimerEvent: {}
+[2.514692] (-) TimerEvent: {}
+[2.615126] (-) TimerEvent: {}
+[2.715723] (-) TimerEvent: {}
+[2.816384] (-) TimerEvent: {}
+[2.848593] (ros2_detection) StdoutLine: {'line': b'running egg_info\n'}
+[2.857297] (ros2_detection) StdoutLine: {'line': b'creating ../build/ros2_detection/ros2_detection.egg-info\n'}
+[2.864094] (ros2_detection) StdoutLine: {'line': b'writing ../build/ros2_detection/ros2_detection.egg-info/PKG-INFO\n'}
+[2.882956] (ros2_detection) StdoutLine: {'line': b'writing dependency_links to ../build/ros2_detection/ros2_detection.egg-info/dependency_links.txt\n'}
+[2.894251] (ros2_detection) StdoutLine: {'line': b'writing entry points to ../build/ros2_detection/ros2_detection.egg-info/entry_points.txt\n'}
+[2.903489] (ros2_detection) StdoutLine: {'line': b'writing requirements to ../build/ros2_detection/ros2_detection.egg-info/requires.txt\n'}
+[2.910742] (ros2_detection) StdoutLine: {'line': b'writing top-level names to ../build/ros2_detection/ros2_detection.egg-info/top_level.txt\n'}
+[2.916473] (-) TimerEvent: {}
+[2.921762] (ros2_detection) StdoutLine: {'line': b"writing manifest file '../build/ros2_detection/ros2_detection.egg-info/SOURCES.txt'\n"}
+[2.971280] (ros2_detection) StdoutLine: {'line': b"reading manifest file '../build/ros2_detection/ros2_detection.egg-info/SOURCES.txt'\n"}
+[3.016570] (-) TimerEvent: {}
+[3.077241] (ros2_detection) StdoutLine: {'line': b"writing manifest file '../build/ros2_detection/ros2_detection.egg-info/SOURCES.txt'\n"}
+[3.084522] (ros2_detection) StdoutLine: {'line': b'running build\n'}
+[3.086060] (ros2_detection) StdoutLine: {'line': b'running build_py\n'}
+[3.096962] (ros2_detection) StdoutLine: {'line': b'creating /workspace/build/ros2_detection/build\n'}
+[3.100429] (ros2_detection) StdoutLine: {'line': b'creating /workspace/build/ros2_detection/build/lib\n'}
+[3.108566] (ros2_detection) StdoutLine: {'line': b'creating /workspace/build/ros2_detection/build/lib/ros2_detection\n'}
+[3.116684] (-) TimerEvent: {}
+[3.130973] (ros2_detection) StdoutLine: {'line': b'copying ros2_detection/detector_node.py -> /workspace/build/ros2_detection/build/lib/ros2_detection\n'}
+[3.192258] (ros2_detection) StdoutLine: {'line': b'copying ros2_detection/__init__.py -> /workspace/build/ros2_detection/build/lib/ros2_detection\n'}
+[3.216815] (-) TimerEvent: {}
+[3.223675] (ros2_detection) StdoutLine: {'line': b'running install\n'}
+[3.224925] (ros2_detection) StdoutLine: {'line': b'running install_lib\n'}
+[3.271928] (ros2_detection) StdoutLine: {'line': b'creating /workspace/install/ros2_detection/lib/python3.10/site-packages/ros2_detection\n'}
+[3.307591] (ros2_detection) StdoutLine: {'line': b'copying /workspace/build/ros2_detection/build/lib/ros2_detection/detector_node.py -> /workspace/install/ros2_detection/lib/python3.10/site-packages/ros2_detection\n'}
+[3.316896] (-) TimerEvent: {}
+[3.379589] (ros2_detection) StdoutLine: {'line': b'copying /workspace/build/ros2_detection/build/lib/ros2_detection/__init__.py -> /workspace/install/ros2_detection/lib/python3.10/site-packages/ros2_detection\n'}
+[3.416998] (-) TimerEvent: {}
+[3.453514] (ros2_detection) StdoutLine: {'line': b'byte-compiling /workspace/install/ros2_detection/lib/python3.10/site-packages/ros2_detection/detector_node.py to detector_node.cpython-310.pyc\n'}
+[3.517112] (-) TimerEvent: {}
+[3.535006] (ros2_detection) StdoutLine: {'line': b'byte-compiling /workspace/install/ros2_detection/lib/python3.10/site-packages/ros2_detection/__init__.py to __init__.cpython-310.pyc\n'}
+[3.592564] (ros2_detection) StdoutLine: {'line': b'running install_data\n'}
+[3.605844] (ros2_detection) StdoutLine: {'line': b'creating /workspace/install/ros2_detection/share/ament_index\n'}
+[3.609853] (ros2_detection) StdoutLine: {'line': b'creating /workspace/install/ros2_detection/share/ament_index/resource_index\n'}
+[3.614322] (ros2_detection) StdoutLine: {'line': b'creating /workspace/install/ros2_detection/share/ament_index/resource_index/packages\n'}
+[3.617189] (-) TimerEvent: {}
+[3.632330] (ros2_detection) StdoutLine: {'line': b'copying resource/ros2_detection -> /workspace/install/ros2_detection/share/ament_index/resource_index/packages\n'}
+[3.673352] (ros2_detection) StdoutLine: {'line': b'copying package.xml -> /workspace/install/ros2_detection/share/ros2_detection\n'}
+[3.711354] (ros2_detection) StdoutLine: {'line': b'creating /workspace/install/ros2_detection/share/ros2_detection/launch\n'}
+[3.717273] (-) TimerEvent: {}
+[3.728486] (ros2_detection) StdoutLine: {'line': b'copying launch/detector.launch.py -> /workspace/install/ros2_detection/share/ros2_detection/launch\n'}
+[3.755253] (ros2_detection) StdoutLine: {'line': b'running install_egg_info\n'}
+[3.783838] (ros2_detection) StdoutLine: {'line': b'Copying ../build/ros2_detection/ros2_detection.egg-info to /workspace/install/ros2_detection/lib/python3.10/site-packages/ros2_detection-0.0.1-py3.10.egg-info\n'}
+[3.817405] (-) TimerEvent: {}
+[3.918042] (-) TimerEvent: {}
+[4.019200] (-) TimerEvent: {}
+[4.120559] (-) TimerEvent: {}
+[4.221295] (-) TimerEvent: {}
+[4.248370] (ros2_detection) StdoutLine: {'line': b'running install_scripts\n'}
+[4.321406] (-) TimerEvent: {}
+[4.365999] (ros2_detection) StdoutLine: {'line': b'Installing detector_node script to /workspace/install/ros2_detection/lib/ros2_detection\n'}
+[4.387151] (ros2_detection) StdoutLine: {'line': b"writing list of installed files to '/workspace/build/ros2_detection/install.log'\n"}
+[4.408064] (ros2_detection) CommandEnded: {'returncode': 0}
+[4.421497] (-) TimerEvent: {}
+[4.522494] (-) TimerEvent: {}
+[4.622980] (-) TimerEvent: {}
+[4.723740] (-) TimerEvent: {}
+[4.824494] (-) TimerEvent: {}
+[4.837680] (ros2_detection) JobEnded: {'identifier': 'ros2_detection', 'rc': 0}
+[4.854763] (-) EventReactorShutdown: {}
