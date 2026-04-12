@@ -29,7 +29,7 @@ build/
 devel/
 .colcon/
 ros2_ws/
-
+log/
 # IDE
 .vscode/
 .idea/
