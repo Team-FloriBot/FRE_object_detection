@@ -1,3 +1,0 @@
-[console_scripts]
-detector_node = ros2_detection.detector_node:main
-
