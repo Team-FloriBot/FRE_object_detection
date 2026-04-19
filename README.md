@@ -22,7 +22,7 @@ pip install -r requirements.txt
 
 A ROS2 detector node is available in `ros2_detection/ros2_detection/detector_node.py`.
 
-It wraps the package-local detection implementation and supports runtime model selection (`yolo` or `rcnn`) with JSON-based status and result output.
+It wraps the package-local detection implementation and supports runtime model selection (`yolo` or `rcnn`) with service-based control and JSON-based status/result output.
 
 ## Current Layout
 
@@ -42,10 +42,10 @@ Place new weights in the workspace-level `models/` folder when possible.
 If you set `model_path` to just the filename, the node will search the workspace root and `models/` automatically.
 The Docker image also copies `models/` into `/root/ros2_ws/models`.
 
-Subscriptions:
-- Control is service-based (`/detector/init`, `/detector/start`, `/detector/stop`, `/detector/release`)
+Control services (order):
+- `/detector/init` -> `/detector/start` -> `/detector/stop` -> `/detector/release`
 
-Publications:
+Monitoring topics:
 - `/detector/model_info` (`std_msgs/String`, JSON)
 - `/detector/results` (`std_msgs/String`, JSON)
 - `/detector/status` (`std_msgs/String`, JSON)
@@ -57,13 +57,14 @@ ros2 run ros2_detection detector_node
 
 Build and source first:
 ```bash
+source /opt/ros/humble/setup.bash
 colcon build --packages-select ros2_detection_interfaces ros2_detection
 source install/setup.bash
 ```
 
 Recommended control client:
 ```bash
-ros2 run ros2_detection detector_client run --duration 15
+ros2 run ros2_detection detector_client run --model-path models/tennisball_600_seg_yolo11_v02.pt --confidence 0.5 --fps 30 --duration 15
 ```
 
 For detailed usage, see:
