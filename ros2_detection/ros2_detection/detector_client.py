@@ -117,14 +117,14 @@ class DetectorClient(Node):
         for idx, det in enumerate(detections, start=1):
             label = det.get("class", "?")
             conf = det.get("confidence", None)
-            pos = det.get("median_xyz", None)
+            median_xyz = det.get("median_xyz", None)
+            object_center = det.get("object_center", None)
 
             conf_str = f"{float(conf):.3f}" if isinstance(conf, (int, float)) else "n/a"
 
-            if isinstance(pos, list) and len(pos) == 3:
-                x, y, z = pos
+            if isinstance(median_xyz, list) and len(median_xyz) == 3:
                 print(
-                    f"  - #{idx} class={label} conf={conf_str} x={x:.3f} y={y:.3f} z={z:.3f}"
+                    f"  - #{idx} class={label} conf={conf_str} m_x={median_xyz[0]:.3f} m_y={median_xyz[1]:.3f} m_z={median_xyz[2]:.3f} c_x={object_center[0]:.3f} c_y={object_center[1]:.3f} c_z={object_center[2]:.3f}"
                 )
             else:
                 print(

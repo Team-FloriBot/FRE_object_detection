@@ -212,12 +212,14 @@ class DetectionNode(Node):
                 label = data.get("class")
                 confidence = data.get("confidence", None)
                 median_xyz = data.get("median_xyz", None)
+                object_center = data.get("object_center", None)
 
                 entry = {
                     "id": obj_id,
                     "class": label,
                     "confidence": confidence,
                     "median_xyz": median_xyz,
+                    "object_center": object_center,
                 }
 
                 detections.append(entry)

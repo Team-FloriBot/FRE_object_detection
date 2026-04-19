@@ -530,6 +530,8 @@ class ObjDetection:
             depth_roi_fixed_raw = (z_roi / self.depth_scale).astype(np.uint16)
             depth_masked[y_min:y_max+1, x_min:x_max+1] = np.where(mask_roi > 0, depth_roi_fixed_raw, depth_masked[y_min:y_max+1, x_min:x_max+1])
 
+
+            """old
             # Median für Label berechnen
             median_xyz = np.mean(points, axis=0)
 
@@ -543,20 +545,41 @@ class ObjDetection:
             
             points = points[mask_z]
             colors_final = colors_final[mask_z]       
-            
-            if len(points) == 0:
+            """
+            # 1. Z-Werte extrahieren
+            z_values = points[:, 2]
+
+            # 2. Median und Standardabweichung berechnen
+            z_median = np.median(z_values)
+            z_std = np.std(z_values)
+
+            # 3. Filter-Faktor definieren (k)
+            # k=1: ca. 68% der Punkte bleiben (sehr streng)
+            # k=2: ca. 95% der Punkte bleiben (guter Standard)
+            # k=3: ca. 99.7% der Punkte bleiben (nur extreme Ausreißer weg)
+            k = 2 
+            tolerance = k * z_std
+
+            # 4. Maske erstellen und anwenden
+            mask_z = np.abs(z_values - z_median) < tolerance
+
+            points_filtered = points[mask_z]
+            colors_filtered = colors_final[mask_z]
+
+            if len(points_filtered) == 0:
                 continue
 
-            median_xyz = np.median(points, axis=0)
+            median_xyz = np.median(points_filtered, axis=0)
+            object_center = np.mean(points_filtered, axis=0)
 
 
             point_cloud_results[instance_counter] = {
                 "class": label,
                 "confidence": confidence,
-                "points": points,
-                "colors": colors_final,
+                "points": points_filtered,
+                "colors": colors_filtered,
                 "median_xyz": median_xyz.tolist() if median_xyz is not None else None,
-
+                "object_center": object_center.tolist() if object_center is not None else None
             }
             instance_counter += 1
 
@@ -645,6 +668,7 @@ class ObjDetection:
                 # Write median coordinates on the image
                 for instance in pc_dict.values():
                     median = instance["median"]
+                    object_center = instance["object_center"]
                     # Approximate pixel coordinates of the median
                     if median[2] != 0:
                         x_pixel = int((median[0] * self.fx) / median[2] + self.cx)
