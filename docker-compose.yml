@@ -4,15 +4,14 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: ros2_detector
+    gpus: all
     environment:
       - ROS_DOMAIN_ID=0
       - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video
     networks:
       - ros2_network
-    # Enable GPU support (uncomment if you have NVIDIA GPU)
-    # runtime: nvidia
-    # environment:
-    #   - NVIDIA_VISIBLE_DEVICES=all
     # For RealSense camera access on Windows/WSL2, mount device
     # devices:
     #   - /dev/bus/usb

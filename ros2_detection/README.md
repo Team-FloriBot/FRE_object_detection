@@ -6,8 +6,8 @@ ROS2 detector node for YOLO/Mask R-CNN object detection with RealSense depth fus
 
 1. **Build the package:**
    ```bash
-   cd ros2_detection
-   colcon build --packages-select ros2_detection
+   cd /workspace
+   colcon build --packages-select ros2_detection_interfaces ros2_detection
    source install/setup.bash
    ```
 
@@ -29,238 +29,102 @@ ros2 launch ros2_detection detector.launch.py
 ```
 
 ## Topic Interface
+The node now uses **services for control** and **topics for monitoring/results**.
 
-## Topic Flow
+## Control Flow
 
 Use the node in this order:
 
 1. Start the node with `ros2 launch ros2_detection detector.launch.py`.
-2. Publish `/detector/config` with `action: init` to load the model and start the camera.
-3. Watch `/detector/status` for `ready`, `ok`, or `error`.
-4. Watch `/detector/model_info` after a successful init.
-5. Publish `/detector/request` when you want a single detection run.
-6. Read `/detector/results` for the detection payload.
-7. Optionally publish `/detector/config` with `action: stop` or `action: release`.
+2. Call `/detector/init` to load model + initialize camera.
+3. Optionally read `/detector/model_info` and `/detector/status`.
+4. Call `/detector/start` to start continuous detection.
+5. Read `/detector/results` continuously.
+6. Call `/detector/stop` to pause loop.
+7. Call `/detector/release` to free camera/model.
 
-### Topic Summary
+## Service API
 
-| Topic | Direction | Purpose | Example payload |
-|---|---|---|---|
-| `/detector/config` | publish to node | Init, start, stop, release | `{"action":"init", ...}` |
-| `/detector/request` | publish to node | Trigger one detection pass | `{"classes":["Tennisball"], ...}` |
-| `/detector/status` | subscribe | Status / error messages | `{"level":"ok", "message":"..."}` |
-| `/detector/model_info` | subscribe | Model metadata after init | `{"model_type":"yolo", ...}` |
-| `/detector/results` | subscribe | Detection output after request | `{"ok":true, "detections":[...]}` |
+| Service | Type | Purpose |
+|---|---|---|
+| `/detector/init` | `ros2_detection_interfaces/srv/Init` | Initialize model and camera |
+| `/detector/start` | `ros2_detection_interfaces/srv/Start` | Start continuous detection loop |
+| `/detector/stop` | `ros2_detection_interfaces/srv/Stop` | Stop loop, keep detector loaded |
+| `/detector/release` | `ros2_detection_interfaces/srv/Release` | Stop + release detector resources |
 
-### Subscriptions
+## Topic API
 
-#### `/detector/config` (std_msgs/String with JSON)
-Initialize, start, stop, or release detector.
+| Topic | Direction | Purpose |
+|---|---|---|
+| `/detector/model_info` | subscribe | Model metadata after successful init |
+| `/detector/status` | subscribe | Status and error messages |
+| `/detector/results` | subscribe | Continuous detection output while started |
 
-**Actions:**
-- `"init"` - Initialize detector with config
-- `"start"` - Start detection loop
-- `"stop"` - Stop detection (keep detector loaded)
-- `"release"` - Clean up and release detector
+## Quick Smoke Test
 
-**Example:**
-```json
-{
-  "action": "init",
-  "model_type": "yolo",
-  "model_path": "models/tennisball_600_seg_yolo11_v02.pt",
-  "classes": ["Tennisball"],
-  "confidence": 0.5,
-  "filters": {
-    "use_decimation": false,
-    "use_spatial": false,
-    "use_temporal": true,
-    "use_hole_filling": true,
-    "use_mask_filter": true
-  },
-  "camera": {
-    "color_resolution": [640, 480],
-    "fps": 30
-  }
-}
-```
+Use these commands from the workspace root in separate terminals.
 
-#### `/detector/request` (std_msgs/String with JSON)
-Trigger detection on current frame with optional class/confidence override.
-
-**Fields:**
-- `classes` (list): Classes to detect (e.g., `["Tennisball"]`)
-- `confidence` (float): Confidence threshold (overrides config)
-- `max_results` (int): Limit number of results, 0 = unlimited
-
-**Example:**
-```json
-{
-  "classes": ["Tennisball"],
-  "confidence": 0.45,
-  "max_results": 5
-}
-```
-
-### Publications
-
-#### `/detector/model_info` (std_msgs/String with JSON)
-Published after successful detector initialization.
-
-**Fields:**
-- `model_type` - Type of model ("yolo" or "rcnn")
-- `model_path` - Path to model weights
-- `selected_classes` - Classes configured for detection
-- `available_classes` - All classes available in model
-- `conf` - Current confidence threshold
-
-#### `/detector/results` (std_msgs/String with JSON)
-Published after each detection request.
-
-**Fields:**
-- `ok` - Success flag (true/false)
-- `searched_classes` - Classes that were searched
-- `model` - Model info object
-- `num_detections` - Number of detections found
-- `detections` - Array of detection objects:
-  - `class` - Class name
-  - `confidence` - Detection confidence (if available)
-  - `center_xy` - [x, y] pixel coordinates
-  - `median_xyz` - [x, y, z] 3D median (if fusion available)
-  - `balliness` - Sphere quality score (0-100)
-  - `radius` - Estimated sphere radius in meters
-
-**Example Response:**
-```json
-{
-  "ok": true,
-  "searched_classes": ["Tennisball"],
-  "model": {
-    "model_type": "yolo",
-    "model_path": "tennisball_600_seg_yolo11_v02.pt",
-    "selected_classes": ["Tennisball"],
-    "available_classes": ["Tennisball"],
-    "conf": 0.5
-  },
-  "num_detections": 2,
-  "detections": [
-    {
-      "class": "Tennisball",
-      "confidence": 0.87,
-      "center_xy": [320, 240],
-      "median_xyz": [0.15, 0.05, 0.8],
-      "balliness": 92,
-      "radius": 0.033
-    }
-  ]
-}
-```
-
-#### `/detector/status` (std_msgs/String with JSON)
-Status and error messages.
-
-**Fields:**
-- `level` - "ready", "ok", or "error"
-- `message` - Status/error message
-
----
-
-## Examples
-
-### Shell Example: Initialize + Detect
-
-**Terminal 1: Start the node**
+Terminal 1:
 ```bash
-ros2 run ros2_detection detector_node
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch ros2_detection detector.launch.py
 ```
 
-**Terminal 2: Send initialization config**
+Terminal 2 (status monitor):
 ```bash
-ros2 topic pub /detector/config std_msgs/String \
-  -1 "{data: '{\"action\":\"init\",\"model_type\":\"yolo\",\"model_path\":\"tennisball_600_seg_yolo11_v02.pt\",\"classes\":[\"Tennisball\"],\"confidence\":0.5,\"filters\":{\"use_decimation\":false,\"use_spatial\":false,\"use_temporal\":true,\"use_hole_filling\":true,\"use_mask_filter\":true},\"camera\":{\"color_resolution\":[640,480],\"fps\":30}}'}"
-```
-
-**Terminal 3: Send detection request**
-```bash
-ros2 topic pub /detector/request std_msgs/String \
-  -1 "{data: '{\"classes\":[\"Tennisball\"],\"confidence\":0.45,\"max_results\":5}'}"
-```
-
-**Terminal 4: Monitor results (in another shell)**
-```bash
-ros2 topic echo /detector/results
+source /opt/ros/humble/setup.bash
+source install/setup.bash
 ros2 topic echo /detector/status
 ```
 
-### Python Example: Client
+Terminal 3 (results monitor):
+```bash
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 topic echo /detector/results
+```
 
-```python
-import json
-import rclpy
-from rclpy.node import Node
-from std_msgs.msg import String
+Terminal 4 (init):
+```bash
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 service call /detector/init ros2_detection_interfaces/srv/Init "{model_type: yolo, model_path: models/tennisball_600_seg_yolo11_v02.pt, classes: [Tennisball], confidence: 0.5, use_decimation: false, use_spatial: false, use_temporal: true, use_hole_filling: true, use_mask_filter: true, color_resolution_width: 640, color_resolution_height: 480, fps: 30, rcnn_class_names: []}"
+```
 
-class DetectorClient(Node):
-    def __init__(self):
-        super().__init__("detector_client")
-        self.config_pub = self.create_publisher(String, "/detector/config", 10)
-        self.request_pub = self.create_publisher(String, "/detector/request", 10)
-        
-        self.status_sub = self.create_subscription(
-            String, "/detector/status", self._on_status, 10
-        )
-        self.results_sub = self.create_subscription(
-            String, "/detector/results", self._on_results, 10
-        )
-    
-    def init_detector(self):
-        config = {
-            "action": "init",
-            "model_type": "yolo",
-            "model_path": "tennisball_600_seg_yolo11_v02.pt",
-            "classes": ["Tennisball"],
-            "confidence": 0.5,
-            "filters": {
-                "use_temporal": True,
-                "use_hole_filling": True,
-                "use_mask_filter": True
-            },
-            "camera": {"color_resolution": [640, 480], "fps": 30}
-        }
-        msg = String(data=json.dumps(config))
-        self.config_pub.publish(msg)
-        self.get_logger().info("Sent init config")
-    
-    def request_detection(self):
-        req = {
-            "classes": ["Tennisball"],
-            "confidence": 0.45,
-            "max_results": 5
-        }
-        msg = String(data=json.dumps(req))
-        self.request_pub.publish(msg)
-        self.get_logger().info("Sent detection request")
-    
-    def _on_status(self, msg: String):
-        data = json.loads(msg.data)
-        self.get_logger().info(f"Status [{data['level']}]: {data['message']}")
-    
-    def _on_results(self, msg: String):
-        data = json.loads(msg.data)
-        self.get_logger().info(f"Detections: {data['num_detections']}")
-        for det in data["detections"]:
-            self.get_logger().info(f"  - {det['class']}: conf={det['confidence']}")
+Terminal 4 (start):
+```bash
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 service call /detector/start ros2_detection_interfaces/srv/Start "{}"
+```
 
-def main():
-    rclpy.init()
-    client = DetectorClient()
-    client.init_detector()
-    # Wait a bit for initialization
-    client.create_timer(2.0, lambda: client.request_detection())
-    rclpy.spin(client)
+Terminal 4 (stop/release):
+```bash
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 service call /detector/stop ros2_detection_interfaces/srv/Stop "{}"
+ros2 service call /detector/release ros2_detection_interfaces/srv/Release "{}"
+```
 
-if __name__ == "__main__":
-    main()
+## Python Client Helper
+
+The package now includes a helper client executable that calls services and prints
+`/detector/status`, `/detector/model_info`, and `/detector/results` live.
+
+Run full flow (`init -> start -> listen -> stop -> release`):
+```bash
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 run ros2_detection detector_client run --duration 15
+```
+
+Run single actions:
+```bash
+ros2 run ros2_detection detector_client init
+ros2 run ros2_detection detector_client start
+ros2 run ros2_detection detector_client stop
+ros2 run ros2_detection detector_client release
 ```
 
 ## Dependencies
@@ -281,49 +145,3 @@ Required Python packages (should be in parent project's `requirements.txt`):
 - Model paths are relative to the working directory where the node is launched
 - The RealSense camera must be connected and properly configured
 - For RCNN, ensure the weights file path is correct
-
-## Quick Smoke Test
-
-Use these commands from the workspace root in separate terminals.
-
-Terminal 1:
-```bash
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-ros2 launch ros2_detection detector.launch.py
-```
-
-Terminal 2 (status monitor):
-```bash
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-ros2 topic echo /detector/status
-```
-
-Terminal 3 (one-shot init publish):
-```bash
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-ros2 topic pub -1 /detector/config std_msgs/msg/String "{data: '$(tr -d '\n' < ros2_detection/example_config.json)'}"
-```
-
-Terminal 4 (model info):
-```bash
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-ros2 topic echo /detector/model_info
-```
-
-Terminal 5 (single detection request):
-```bash
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-ros2 topic pub -1 /detector/request std_msgs/msg/String "{data: '{\"classes\":[\"Tennisball\"],\"confidence\":0.45,\"max_results\":5}'}"
-```
-
-Terminal 6 (results):
-```bash
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-ros2 topic echo /detector/results
-```

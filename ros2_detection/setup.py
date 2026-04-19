@@ -25,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'detector_node = ros2_detection.detector_node:main',
+            'detector_client = ros2_detection.detector_client:main',
         ],
     },
 )

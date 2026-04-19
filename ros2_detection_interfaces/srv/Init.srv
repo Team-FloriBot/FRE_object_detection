@@ -1,0 +1,17 @@
+string model_type
+string model_path
+string[] classes
+float64 confidence
+bool use_decimation
+bool use_spatial
+bool use_temporal
+bool use_hole_filling
+bool use_mask_filter
+int32 color_resolution_width
+int32 color_resolution_height
+int32 fps
+string[] rcnn_class_names
+---
+bool success
+string message
+string model_info

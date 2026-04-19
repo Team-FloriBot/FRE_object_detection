@@ -394,6 +394,7 @@ class ObjDetection:
 
         for obj in obj_masks:
             label = obj["class"]
+            confidence = obj["confidence"]
             mask_full = (obj["mask"] > 0.5).astype(np.uint8)
 
             # 1. Calculate bounding box (efficiency boost: process ROI only)
@@ -519,8 +520,6 @@ class ObjDetection:
             mad = np.median(np.abs(mean_dist - np.median(mean_dist)))
             threshold = np.median(mean_dist) + 3 * mad
 
-            mean_dist < threshold
-
             keep_knn = mean_dist < threshold
 
             points = points[keep_knn]
@@ -548,67 +547,20 @@ class ObjDetection:
             if len(points) == 0:
                 continue
 
-
-            # Kugelfit
-            center, radius = self.fit_sphere(points)
-            d = np.linalg.norm(points - center, axis=1)
-
-            # Radiale Qualität
-            radial_quality = 1 - np.std(d) / radius
-            radial_quality = np.clip(radial_quality, 0, 1)
-
-            # 3D-Verteilung
-            X = points - points.mean(axis=0)
-            cov = np.cov(X.T)
-            l = np.linalg.eigvalsh(cov)
-            spatial_quality = l.min() / l.max()
-            #spatial_quality = l[0] / np.mean(l)
-
-            sphere_quality = min(10 * 100 * radial_quality * spatial_quality,100)
-            
-
-            median_xyz = np.median(points, axis=0) # recalculate median   
+            median_xyz = np.median(points, axis=0)
 
 
             point_cloud_results[instance_counter] = {
-                "label": label,
+                "class": label,
+                "confidence": confidence,
                 "points": points,
                 "colors": colors_final,
-                "median": median_xyz,
-                "balliness": sphere_quality,
-                "radius": radius
+                "median_xyz": median_xyz.tolist() if median_xyz is not None else None,
 
             }
             instance_counter += 1
 
         return point_cloud_results, depth_masked
-
-    def fit_sphere(self, points):
-        # points: Nx3 numpy array
-        
-        # Extract x,y,z
-        x = points[:,0]
-        y = points[:,1]
-        z = points[:,2]
-
-        # Build the A matrix and f vector for least squares
-        A = np.column_stack([2*x, 2*y, 2*z, np.ones_like(x)])
-        f = x**2 + y**2 + z**2
-
-        # Solve A*p = f for p = [x0, y0, z0, c]
-        C, *_ = np.linalg.lstsq(A, f, rcond=None)
-
-        x0, y0, z0, c = C
-        # compute radius
-        r = np.sqrt(c + x0**2 + y0**2 + z0**2)
-
-        return np.array([x0, y0, z0]), r
-    
-    def sphere_fit_error(self, points, center, radius):
-        d = np.linalg.norm(points - center, axis=1)
-        residuals = d - radius
-        rmse = np.sqrt(np.mean(residuals**2))
-        return rmse, residuals
     
     # ---------------------------------------------------------
     # Stop Camera
@@ -693,13 +645,11 @@ class ObjDetection:
                 # Write median coordinates on the image
                 for instance in pc_dict.values():
                     median = instance["median"]
-                    balliness = instance["balliness"]
-                    radius = instance["radius"]
                     # Approximate pixel coordinates of the median
                     if median[2] != 0:
                         x_pixel = int((median[0] * self.fx) / median[2] + self.cx)
                         y_pixel = int((-median[1] * self.fy) / median[2] + self.cy) # Invert Y again for image coordinates
-                        text = f"X:{median[0]:.2f} Y:{median[1]:.2f} Z:{median[2]:.2f} B:{balliness:.0f}% R:{radius:.2f}"
+                        text = f"X:{median[0]:.2f} Y:{median[1]:.2f} Z:{median[2]:.2f}"
                         
                         # 3. Text-Einstellungen
                         font = cv2.FONT_HERSHEY_SIMPLEX

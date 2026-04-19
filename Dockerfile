@@ -25,7 +25,6 @@ COPY models /root/ros2_ws/models
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir \
-    --index-url https://download.pytorch.org/whl/cpu \
     torch \
     torchvision
 RUN pip install --no-cache-dir \

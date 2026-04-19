@@ -5,12 +5,17 @@ services:
       dockerfile: Dockerfile
     container_name: ros2_detector_dev
     command: /bin/bash -lc "while sleep 1000; do :; done"
+    gpus: all
+    privileged: true
     environment:
       - ROS_DOMAIN_ID=0
       - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
       - DETECTION_PROJECT_ROOT=/workspace
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video
     volumes:
       - ..:/workspace:cached
+      - /dev/bus/usb:/dev/bus/usb
     working_dir: /workspace
     stdin_open: true
     tty: true
