@@ -31,3 +31,5 @@ Thumbs.db
 dataset_banane_apfel_orange/
 
 runs/
+
+build/
