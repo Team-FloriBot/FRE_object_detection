@@ -1,0 +1,81 @@
+from pathlib import Path
+
+import yaml
+from ultralytics import YOLO
+
+
+def _load_class_config(project_root: Path) -> tuple[int, list[str]]:
+    source_yaml = project_root / "raw_images" / "data.yaml"
+    if source_yaml.exists():
+        data = yaml.safe_load(source_yaml.read_text(encoding="utf-8"))
+        names = data.get("names", [])
+        if isinstance(names, dict):
+            names = [names[idx] for idx in sorted(names)]
+        nc = int(data.get("nc", len(names)))
+        if names and nc == len(names):
+            return nc, names
+    return 2, ["jute-stripe", "yellow-paper"]
+
+
+def _build_output_data_yaml(project_root: Path) -> Path:
+    output_dir = project_root / "output"
+    images_dir = output_dir / "images"
+    labels_dir = output_dir / "labels"
+    if not images_dir.exists() or not labels_dir.exists():
+        raise FileNotFoundError("Erwarte output/images und output/labels fuer das Training.")
+
+    nc, names = _load_class_config(project_root)
+    data = {
+        "path": str(output_dir.resolve()),
+        "train": "images",
+        "val": "images",
+        "nc": nc,
+        "names": names,
+    }
+    target_yaml = output_dir / "data.yaml"
+    target_yaml.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=False), encoding="utf-8")
+    return target_yaml
+
+
+def main() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+
+    model_path = project_root / "model" / "yolo11n-seg.pt"
+    model = YOLO(str(model_path if model_path.exists() else "yolo11m-seg.pt"))
+
+    data_yaml = _build_output_data_yaml(project_root)
+
+    model.train(
+        data=str(data_yaml),
+        epochs=200,
+        imgsz=640,
+        batch=8,
+        device="0",
+        name="yolo11_jute_stripe_yellow_paper",
+        exist_ok=True,
+        hsv_h=0.015,
+        hsv_s=0.4,
+        hsv_v=0.3,
+        degrees=15.0,
+        translate=0.1,
+        scale=0.5,
+        shear=2.0,
+        flipud=0.0,
+        fliplr=0.5,
+        mosaic=0.7,
+        mixup=0.1,
+        patience=30,
+        optimizer="AdamW",
+        lr0=0.001,
+        lrf=0.01,
+        weight_decay=0.0005,
+        warmup_epochs=5,
+        close_mosaic=15,
+    )
+
+    model.val(data=str(data_yaml))
+    model.save("yolo11_jute_stripe_yellow_paper-seg.pt")
+
+
+if __name__ == "__main__":
+    main()
