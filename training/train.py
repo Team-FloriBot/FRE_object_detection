@@ -39,6 +39,7 @@ def _build_output_data_yaml(project_root: Path) -> Path:
 
 def main() -> None:
     project_root = Path(__file__).resolve().parents[1]
+    runs_dir = project_root / "runs"
 
     model_path = project_root / "model" / "yolo11n-seg.pt"
     model = YOLO(str(model_path if model_path.exists() else "yolo11m-seg.pt"))
@@ -51,6 +52,7 @@ def main() -> None:
         imgsz=640,
         batch=8,
         device="0",
+        project=str(runs_dir),
         name="yolo11_jute_stripe_yellow_paper",
         exist_ok=True,
         hsv_h=0.015,
@@ -66,14 +68,19 @@ def main() -> None:
         mixup=0.1,
         patience=30,
         optimizer="AdamW",
-        lr0=0.001,
-        lrf=0.01,
+        lr0=0.0001,
+        lrf=0.001,
         weight_decay=0.0005,
-        warmup_epochs=5,
+        warmup_epochs=20,
         close_mosaic=15,
     )
 
-    model.val(data=str(data_yaml))
+    model.val(
+        data=str(data_yaml),
+        project=str(runs_dir),
+        name="yolo11_jute_stripe_yellow_paper_val",
+        exist_ok=True,
+    )
     model.save(str(project_root / "model" / "yolo11_jute_stripe_yellow_paper-seg.pt"))
 
 
