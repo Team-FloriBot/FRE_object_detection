@@ -4,8 +4,8 @@ FROM ultralytics/ultralytics:latest
 # Arbeitsverzeichnis im Container festlegen
 WORKDIR /usr/src/app
 
-# System-Abhängigkeiten für OpenCV (falls nicht im Base-Image)
-RUN apt-get update && apt-get install -y libgl1-mesa-glx && rm -rf /var/lib/apt/lists/*
+# System-Abhängigkeiten für OpenCV (noble-kompatibel)
+RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 && rm -rf /var/lib/apt/lists/*
 
 # Trainingsskript kopieren
 COPY training/train.py ./training/train.py
