@@ -25,3 +25,18 @@ services:
     command: ["python3", "training/train.py"]
     gpus: all
     shm_size: '8gb'
+
+  yolo-detector:
+    profiles: ["detect"] # Gehört zum Profil 'detect'
+    build:
+      context: .
+      dockerfile: training/Dockerfile
+    container_name: yolo_detector
+    volumes:
+      - ./output:/usr/src/app/output
+      - .:/usr/src/app
+      - ./model:/model
+      - ./runs:/usr/src/app/runs
+    command: ["python3", "detection.py"]
+    gpus: all
+    shm_size: '8gb'

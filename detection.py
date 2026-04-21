@@ -1,23 +1,24 @@
 from ultralytics import YOLO
 import cv2
+import os
 import numpy as np
 #import pyrealsense2 as rs
 import time
-
-
+from pathlib import Path
+OUT_IMG = "output/images"
 class ObjDetection:
     def __init__(self, classes):
         self.W=640
         self.H=480
 
         # Initialize a YOLOE model
-        self.model = YOLO("yolo11m-seg.pt")
+        self.model = YOLO("/model/yolo11_jute_stripe_yellow_paper-seg.pt")
         # Save classes to detect
         self.classes = classes
         self.class_ids = [id for id in self.model.names if self.model.names[id] in classes]
 
         # Initialize webcam
-        self.cap = cv2.VideoCapture(0)
+        #self.cap = cv2.VideoCapture(0)
 
     # ---------------------------------------------------------
     # RealSense Setup
@@ -25,6 +26,7 @@ class ObjDetection:
     def initialize_realsense(self):
         # init realsense
         pass
+
 
     # ---------------------------------------------------------
     # Capture Frame in camera
@@ -34,9 +36,11 @@ class ObjDetection:
         RGB- und Tiefenbild lesen
         Outputs: color_image, depth_image
         """""""""""""""""""""""""""
-        
+        out_name = f"synth_2.jpg"
         # --> replace that with rs
-        ret, color_image = self.cap.read()
+        #ret, color_image = self.cap.read()
+        color_image = cv2.imread(os.path.join(OUT_IMG, out_name))
+
 
         # --> replace that with rs
         color_image = cv2.resize(color_image, (self.W, self.H))
@@ -54,8 +58,8 @@ class ObjDetection:
         Output annotated_image, frame_mask --> classes, mask
         """""""""""""""""""""""""""
 
-        #results = self.model.predict(color_image, classes=self.class_ids, conf=0.2)
-        results = self.model.predict(color_image)
+        results = self.model.predict(color_image, classes=self.class_ids, conf=0.2)
+        #results = self.model.predict(color_image)
 
         annotated_image = color_image.copy()
 
@@ -105,8 +109,9 @@ class ObjDetection:
     # Stop Camera
     # ---------------------------------------------------------
     def stop_camera(self):
-        self.cap.release()
-        cv2.destroyAllWindows()
+        #self.cap.release()
+        #cv2.destroyAllWindows()
+        pass
 
     def run(self):
         while True:
@@ -117,12 +122,14 @@ class ObjDetection:
             frame_masks, annotated_color_image = self.detect_obj(color_image)
 
             # RGB- und Tiefenbild fussionieren
-            coordinates = self.fuse(color_image, depth_image, frame_masks)
+            #coordinates = self.fuse(color_image, depth_image, frame_masks)
             # Objekt-Koordinaten berechnen
 
             # Detektion anzeigen
-            cv2.imshow("Orginal", color_image)
-            cv2.imshow("Detektion", annotated_color_image)
+            #cv2.imshow("Orginal", color_image)
+            #cv2.imshow("Detektion", annotated_color_image)
+            cv2.imwrite(os.path.join(OUT_IMG, "new.jpg"), annotated_color_image)
+            break
 
             # Beenden mit 'q'
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -131,5 +138,5 @@ class ObjDetection:
         self.stop_camera()
 
 if __name__ == "__main__":
-    person_detection = ObjDetection(["Apfel"])
+    person_detection = ObjDetection(["yellow-paper"])
     person_detection.run()

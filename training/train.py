@@ -74,7 +74,7 @@ def main() -> None:
     )
 
     model.val(data=str(data_yaml))
-    model.save("yolo11_jute_stripe_yellow_paper-seg.pt")
+    model.save(str(project_root / "model" / "yolo11_jute_stripe_yellow_paper-seg.pt"))
 
 
 if __name__ == "__main__":
