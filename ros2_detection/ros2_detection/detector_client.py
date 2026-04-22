@@ -9,6 +9,15 @@ from std_msgs.msg import String
 
 from ros2_detection_interfaces.srv import Init, Release, Start, Stop
 
+"""
+ros2 launch realsense2_camera rs_launch.py \ 
+enable_rgbd:=true \ 
+enable_sync:=true \
+align_depth.enable:=true \
+enable_color:=true \
+enable_depth:=true \
+color_module.profile:=640x480x30
+"""
 
 class DetectorClient(Node):
     def __init__(self) -> None:
@@ -35,11 +44,12 @@ class DetectorClient(Node):
 
         return False
 
-    def call_init(self, model_path: str, confidence: float, fps: int) -> bool:
+    def call_init(self, model_path: str, classes: list, use_realsense_ros_wrapper: bool, confidence: float) -> bool:
         req = Init.Request()
         req.model_type = "yolo"
         req.model_path = model_path
-        req.classes = ["Tennisball"]
+        req.classes = classes
+        req.use_realsense_ros_wrapper = use_realsense_ros_wrapper
         req.confidence = confidence
         req.use_decimation = False
         req.use_spatial = False
@@ -48,7 +58,7 @@ class DetectorClient(Node):
         req.use_mask_filter = True
         req.color_resolution_width = 640
         req.color_resolution_height = 480
-        req.fps = fps
+        req.fps = 30
         req.rcnn_class_names = []
 
         future = self.init_client.call_async(req)
@@ -137,10 +147,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Service-based client for ros2_detection")
     parser.add_argument("action", choices=["run", "init", "start", "stop", "release"], help="Action to perform")
     parser.add_argument("--model-path", default="model/tennisball_600_seg_yolo11_v02.pt", help="YOLO model path")
+    parser.add_argument("--classes", default=[], help="Classes to detect")
     parser.add_argument("--confidence", type=float, default=0.5, help="Detection confidence")
-    parser.add_argument("--fps", type=int, default=30, help="Camera FPS")
     parser.add_argument("--duration", type=float, default=10.0, help="Listen duration in seconds for action=run")
     parser.add_argument("--keep-running", action="store_true", help="Do not auto stop/release after run duration")
+    parser.add_argument("--use-realsense-ros-wrapper", type=bool, default=False, help="Use RealSense ROS wrapper")
     args = parser.parse_args()
 
     rclpy.init()
@@ -152,7 +163,7 @@ def main() -> None:
             return
 
         if args.action == "init":
-            node.call_init(args.model_path, args.confidence, args.fps)
+            node.call_init(args.model_path, args.classes, args.use_realsense_ros_wrapper, args.confidence)
             return
 
         if args.action == "start":
@@ -167,7 +178,7 @@ def main() -> None:
             node.call_release()
             return
 
-        if not node.call_init(args.model_path, args.confidence, args.fps):
+        if not node.call_init(args.model_path, args.classes, args.use_realsense_ros_wrapper, args.confidence):
             return
 
         if not node.call_start():

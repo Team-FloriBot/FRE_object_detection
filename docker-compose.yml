@@ -17,9 +17,7 @@ services:
     #   - /dev/bus/usb
     volumes:
       # Mount model files
-      - ./tennisball_600_seg_yolo11_v02.pt:/root/project/tennisball_600_seg_yolo11_v02.pt:ro
-      - ./yolo11m-seg.pt:/root/project/yolo11m-seg.pt:ro
-      - ./imageset:/root/project/imageset:ro
+      - ./model:/root/project/model:ro
     stdin_open: true
     tty: true
 

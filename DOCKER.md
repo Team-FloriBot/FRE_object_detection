@@ -134,8 +134,7 @@ Models are mounted as read-only in the container:
 
 ```yaml
 volumes:
-  - ./tennisball_600_seg_yolo11_v02.pt:/root/project/tennisball_600_seg_yolo11_v02.pt:ro
-  - ./imageset:/root/project/imageset:ro
+  - ./model:/root/project/model:ro
 ```
 
 Make sure these files exist in your project root before starting the container.

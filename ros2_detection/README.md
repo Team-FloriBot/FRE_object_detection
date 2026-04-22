@@ -69,7 +69,7 @@ Terminal 2:
 ```bash
 source /opt/ros/humble/setup.bash
 source install/setup.bash
-ros2 run ros2_detection detector_client run --model-path model/tennisball_600_seg_yolo11_v02.pt --confidence 0.5 --fps 30 --duration 15
+ros2 run ros2_detection detector_client run --model-path model/yolo11_jute_stripe_yellow_paper-seg.pt --confidence 0.5 --duration 15 --use-realsense-ros-wrapper True
 ```
 
 Single actions are available if needed:
@@ -86,7 +86,7 @@ ros2 run ros2_detection detector_client release
 Example `/detector/init` request:
 
 ```bash
-ros2 service call /detector/init ros2_detection_interfaces/srv/Init "{model_type: yolo, model_path: model/tennisball_600_seg_yolo11_v02.pt, classes: [Tennisball], confidence: 0.5, use_decimation: false, use_spatial: false, use_temporal: true, use_hole_filling: true, use_mask_filter: true, color_resolution_width: 640, color_resolution_height: 480, fps: 30, rcnn_class_names: []}"
+ros2 service call /detector/init ros2_detection_interfaces/srv/Init "{model_type: yolo, model_path: model/tennisball_600_seg_yolo11_v02.pt, classes: ["Tennisball"], confidence: 0.5, use_decimation: false, use_spatial: false, use_temporal: true, use_hole_filling: true, use_mask_filter: true, color_resolution_width: 640, color_resolution_height: 480, use_realsense_ros_wrapper: True, rcnn_class_names: []}"
 ros2 service call /detector/start ros2_detection_interfaces/srv/Start "{}"
 ros2 service call /detector/stop ros2_detection_interfaces/srv/Stop "{}"
 ros2 service call /detector/release ros2_detection_interfaces/srv/Release "{}"

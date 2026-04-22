@@ -6,6 +6,10 @@ import rclpy
 from rclpy.node import Node
 from ros2_detection_interfaces.srv import Init, Release, Start, Stop
 from std_msgs.msg import String
+import rclpy
+from rclpy.node import Node
+from cv_bridge import CvBridge
+from realsense2_camera_msgs.msg import RGBD
 
 from .detection_model_selection import ObjDetection
 
@@ -62,7 +66,27 @@ class DetectionNode(Node):
             self._handle_release,
         )
 
+        self.bridge = CvBridge()
+        self.color_img = None
+        self.depth_img = None
+
+        self.sub = self.create_subscription(
+            RGBD,
+            "/camera/rgbd/image",
+            self.realsense_callback,
+            10
+        )
+
         self._publish_status("ready", "Detector node started. Waiting for /detector/init.")
+
+    def realsense_callback(self, msg):
+        self.color_img = self.bridge.imgmsg_to_cv2(msg.color, "bgr8")
+        self.depth_img = self.bridge.imgmsg_to_cv2(msg.depth, "passthrough")
+
+        print("RGBD:", self.color_img.shape, self.depth_img.shape)
+
+    def get_realsense_images(self):
+        return self.color_img, self.depth_img
 
     def _handle_init(self, request, response) -> None:
         """Initialize detector with given configuration."""
@@ -82,6 +106,7 @@ class DetectionNode(Node):
                     "use_mask_filter": bool(request.use_mask_filter),
                 },
                 "camera": {
+                    "use_realsense_ros_wrapper": bool(request.use_realsense_ros_wrapper),
                     "color_resolution": [request.color_resolution_width, request.color_resolution_height],
                     "fps": int(request.fps),
                 },
@@ -105,13 +130,14 @@ class DetectionNode(Node):
                 use_temporal=config["filters"]["use_temporal"],
                 use_hole_filling=config["filters"]["use_hole_filling"],
                 use_mask_filter=config["filters"]["use_mask_filter"],
-                conf=config["confidence"],
+                conf=config["confidence"]
             )
 
             # Initialize camera
             self.detector.initialize_realsense(
                 color_resolution=tuple(config["camera"]["color_resolution"]),
                 fps=config["camera"]["fps"],
+                get_realsense_images = self.get_realsense_images if config["camera"]["use_realsense_ros_wrapper"] else None
             )
 
             self.current_config = config

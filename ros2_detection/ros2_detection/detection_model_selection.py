@@ -9,6 +9,7 @@ import open3d as o3d
 from ultralytics import YOLO
 from . import tracking
 from sklearn.neighbors import NearestNeighbors
+from realsense_client import RealSenseSubscriber
 
 
 def _resolve_model_path(model_path, default_filename):
@@ -97,6 +98,9 @@ class ObjDetection:
         self.cy = 0
         self.fx = 0
         self.fy = 0
+
+        self.get_realsense_images = None
+
 
         # --- Model Selection & Initialization --- 
         if self.model_type == "yolo":
@@ -193,29 +197,35 @@ class ObjDetection:
     # ---------------------------------------------------------
     # RealSense Setup
     # ---------------------------------------------------------
-    def initialize_realsense(self, color_resolution=(640, 480), fps=30):
-        """
-        Initialises the RealSense pipeline and starts streaming.
-        """
-        depth_resolution = (self.W, self.H)
+    def initialize_realsense(self, color_resolution=(640, 480), fps=30, get_realsense_images=None):
+        self.get_realsense_images = get_realsense_images
+        if self.get_realsense_images is not None:
+            # start realsense node if not already done?
+            self.is_initialized = True
+            
+        else:
+            """
+            Initialises the RealSense pipeline and starts streaming.
+            """
+            depth_resolution = (self.W, self.H)
 
-        self.pipeline = rs.pipeline()
-        self.config = rs.config()
+            self.pipeline = rs.pipeline()
+            self.config = rs.config()
 
-        self.config.enable_stream(rs.stream.depth, depth_resolution[0], depth_resolution[1], rs.format.z16, fps)
-        self.config.enable_stream(rs.stream.color, color_resolution[0], color_resolution[1], rs.format.bgr8, fps)
+            self.config.enable_stream(rs.stream.depth, depth_resolution[0], depth_resolution[1], rs.format.z16, fps)
+            self.config.enable_stream(rs.stream.color, color_resolution[0], color_resolution[1], rs.format.bgr8, fps)
 
-        profile = self.pipeline.start(self.config)
+            profile = self.pipeline.start(self.config)
 
-        depth_sensor = profile.get_device().first_depth_sensor()
-        self.depth_scale = depth_sensor.get_depth_scale()
-        print(f"Depth Scale: {self.depth_scale}")
+            depth_sensor = profile.get_device().first_depth_sensor()
+            self.depth_scale = depth_sensor.get_depth_scale()
+            print(f"Depth Scale: {self.depth_scale}")
 
-        align_to = rs.stream.color
-        self.align = rs.align(align_to)
+            align_to = rs.stream.color
+            self.align = rs.align(align_to)
 
-        self.is_initialized = True
-        print("RealSense initialized successfully.")
+            self.is_initialized = True
+            print("RealSense initialized successfully.")
 
     # ---------------------------------------------------------
     # Capture Frame
@@ -227,7 +237,10 @@ class ObjDetection:
         if not self.is_initialized:
             raise RuntimeError("RealSense pipeline not initialized. Call initialize_realsense() first.")
 
-        frames = self.pipeline.wait_for_frames()
+        if self.get_realsense_images is not None:
+            frames = self.get_realsense_images()
+        else:   
+            frames = self.pipeline.wait_for_frames()
         return frames
 
     # ---------------------------------------------------------
@@ -648,7 +661,10 @@ class ObjDetection:
                 frames = self.get_frame()
 
                 # Align frames
-                aligned_frames = self.align_frames(frames)
+                if self.get_realsense_images is not None:
+                    aligned_frames = frames
+                else:
+                    aligned_frames = self.align_frames(frames)
                 color_image, depth_image = self.depth_filter(aligned_frames)
 
                 if color_image is None or depth_image is None:

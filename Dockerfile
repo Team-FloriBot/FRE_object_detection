@@ -16,11 +16,12 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Create directory structure
-RUN mkdir -p /root/ros2_ws/src
+RUN mkdir -p /app/ros2_ws/src
 
 # Copy the project files
-COPY ros2_detection /root/ros2_ws/src/ros2_detection
-COPY model /root/ros2_ws/model
+COPY ros2_detection /app/ros2_ws/src/ros2_detection
+COPY ros2_detection_interfaces /app/ros2_ws/src/ros2_detection_interfaces
+COPY model /app/ros2_ws/model
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip
@@ -44,16 +45,16 @@ RUN pip install --no-cache-dir \
 RUN pip install --no-cache-dir --no-deps ultralytics
 
 # Build ROS2 workspace
-WORKDIR /root/ros2_ws
+WORKDIR /app/ros2_ws
 RUN . /opt/ros/humble/setup.sh && colcon build --packages-select ros2_detection
 
 # Source setup in bashrc for convenience
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc && \
-    echo "source /root/ros2_ws/install/setup.bash" >> ~/.bashrc
+    echo "source /app/ros2_ws/install/setup.bash" >> ~/.bashrc
 
 # Set environment variables
 ENV ROS_DOMAIN_ID=0
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
 # Default command
-CMD ["bash", "-c", "source /opt/ros/humble/setup.bash && source /root/ros2_ws/install/setup.bash && ros2 run ros2_detection detector_node"]
+CMD ["bash", "-c", "source /opt/ros/humble/setup.bash && source /app/ros2_ws/install/setup.bash && ros2 run ros2_detection detector_node"]

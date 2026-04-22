@@ -1,5 +1,5 @@
 ### Set up the Repository
-
+Setup Docker --> Explain here
 Clone the repository
 ```bash
 git clone https://github.com/astark146/crv_fieldrobotevent.git
@@ -36,8 +36,10 @@ The repository is split into two clear layers:
 
 Place new weights in the workspace-level `model/` folder when possible.
 
-- YOLO example: `model/tennisball_600_seg_yolo11_v02.pt`
-- RCNN example: `model/mask_rcnn_final_3.pth`
+available YOLO models: 
+- `model/tennisball_600_seg_yolo11_v02.pt`
+- `model/yolo11_jute_stripe_yellow_paper-seg.pt`
+- `model/yolo11n-seg.pt`
 
 If you set `model_path` to just the filename, the node will search the workspace root and `model/` automatically.
 The Docker image also copies `model/` into `/root/ros2_ws/model`.
@@ -64,7 +66,19 @@ source install/setup.bash
 
 Recommended control client:
 ```bash
-ros2 run ros2_detection detector_client run --model-path model/tennisball_600_seg_yolo11_v02.pt --confidence 0.5 --fps 30 --duration 15
+ros2 run ros2_detection detector_client run --model-path model/yolo11_jute_stripe_yellow_paper-seg.pt --confidence 0.5 --duration 15 --use-realsense-ros-wrapper True
+```
+
+When using with realsense ros wrapper:
+start the realsene laun file with the follwoing parameters:
+```bash
+ros2 launch realsense2_camera rs_launch.py \ 
+enable_rgbd:=true \ 
+enable_sync:=true \
+align_depth.enable:=true \
+enable_color:=true \
+enable_depth:=true \
+color_module.profile:=640x480x30
 ```
 
 For detailed usage, see:
