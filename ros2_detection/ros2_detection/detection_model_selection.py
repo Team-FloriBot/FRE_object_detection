@@ -9,7 +9,6 @@ import open3d as o3d
 from ultralytics import YOLO
 from . import tracking
 from sklearn.neighbors import NearestNeighbors
-from realsense_client import RealSenseSubscriber
 
 
 def _resolve_model_path(model_path, default_filename):

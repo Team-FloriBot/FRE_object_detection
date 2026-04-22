@@ -43,10 +43,16 @@ RUN pip install --no-cache-dir \
     polars \
     ultralytics-thop
 RUN pip install --no-cache-dir --no-deps ultralytics
+RUN apt-get update && apt-get install -y \
+    ros-humble-cv-bridge \
+    ros-humble-vision-opencv \
+    ros-humble-realsense2-camera-msgs
+
+
 
 # Build ROS2 workspace
 WORKDIR /app/ros2_ws
-RUN . /opt/ros/humble/setup.sh && colcon build --packages-select ros2_detection
+RUN . /opt/ros/humble/setup.sh && colcon build --packages-select ros2_detection_interfaces ros2_detection
 
 # Source setup in bashrc for convenience
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc && \
