@@ -1,7 +1,7 @@
 {
   "action": "init",
   "model_type": "yolo",
-  "model_path": "models/tennisball_600_seg_yolo11_v02.pt",
+  "model_path": "model/tennisball_600_seg_yolo11_v02.pt",
   "classes": ["Tennisball"],
   "confidence": 0.5,
   "filters": {

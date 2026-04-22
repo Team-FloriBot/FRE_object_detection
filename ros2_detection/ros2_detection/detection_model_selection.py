@@ -17,10 +17,10 @@ def _resolve_model_path(model_path, default_filename):
         provided_path = str(model_path)
         candidate_paths.append(provided_path)
         candidate_paths.append(os.path.join(os.getcwd(), provided_path))
-        candidate_paths.append(os.path.join(os.getcwd(), "models", provided_path))
+        candidate_paths.append(os.path.join(os.getcwd(), "model", provided_path))
         package_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         candidate_paths.append(os.path.join(package_root, provided_path))
-        candidate_paths.append(os.path.join(package_root, "models", provided_path))
+        candidate_paths.append(os.path.join(package_root, "model", provided_path))
         for candidate in candidate_paths:
             if os.path.exists(candidate):
                 return candidate
@@ -30,9 +30,9 @@ def _resolve_model_path(model_path, default_filename):
     default_candidates = [
         default_filename,
         os.path.join(os.getcwd(), default_filename),
-        os.path.join(os.getcwd(), "models", default_filename),
+        os.path.join(os.getcwd(), "model", default_filename),
         os.path.join(package_root, default_filename),
-        os.path.join(package_root, "models", default_filename),
+        os.path.join(package_root, "model", default_filename),
     ]
     for candidate in default_candidates:
         if os.path.exists(candidate):

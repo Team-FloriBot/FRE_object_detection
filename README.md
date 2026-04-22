@@ -34,13 +34,13 @@ The repository is split into two clear layers:
 
 ## Model Files
 
-Place new weights in the workspace-level `models/` folder when possible.
+Place new weights in the workspace-level `model/` folder when possible.
 
-- YOLO example: `models/tennisball_600_seg_yolo11_v02.pt`
-- RCNN example: `models/mask_rcnn_final_3.pth`
+- YOLO example: `model/tennisball_600_seg_yolo11_v02.pt`
+- RCNN example: `model/mask_rcnn_final_3.pth`
 
-If you set `model_path` to just the filename, the node will search the workspace root and `models/` automatically.
-The Docker image also copies `models/` into `/root/ros2_ws/models`.
+If you set `model_path` to just the filename, the node will search the workspace root and `model/` automatically.
+The Docker image also copies `model/` into `/root/ros2_ws/model`.
 
 Control services (order):
 - `/detector/init` -> `/detector/start` -> `/detector/stop` -> `/detector/release`
@@ -64,7 +64,7 @@ source install/setup.bash
 
 Recommended control client:
 ```bash
-ros2 run ros2_detection detector_client run --model-path models/tennisball_600_seg_yolo11_v02.pt --confidence 0.5 --fps 30 --duration 15
+ros2 run ros2_detection detector_client run --model-path model/tennisball_600_seg_yolo11_v02.pt --confidence 0.5 --fps 30 --duration 15
 ```
 
 For detailed usage, see:

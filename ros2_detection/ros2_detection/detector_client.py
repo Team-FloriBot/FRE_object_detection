@@ -136,7 +136,7 @@ class DetectorClient(Node):
 def main() -> None:
     parser = argparse.ArgumentParser(description="Service-based client for ros2_detection")
     parser.add_argument("action", choices=["run", "init", "start", "stop", "release"], help="Action to perform")
-    parser.add_argument("--model-path", default="models/tennisball_600_seg_yolo11_v02.pt", help="YOLO model path")
+    parser.add_argument("--model-path", default="model/tennisball_600_seg_yolo11_v02.pt", help="YOLO model path")
     parser.add_argument("--confidence", type=float, default=0.5, help="Detection confidence")
     parser.add_argument("--fps", type=int, default=30, help="Camera FPS")
     parser.add_argument("--duration", type=float, default=10.0, help="Listen duration in seconds for action=run")

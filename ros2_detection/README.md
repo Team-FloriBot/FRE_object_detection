@@ -22,7 +22,7 @@ ros2 launch ros2_detection detector.launch.py
 
 Recommended model location:
 
-- `models/` at workspace root, e.g. `models/tennisball_600_seg_yolo11_v02.pt`
+- `model/` at workspace root, e.g. `model/tennisball_600_seg_yolo11_v02.pt`
 
 Also possible:
 
@@ -69,13 +69,13 @@ Terminal 2:
 ```bash
 source /opt/ros/humble/setup.bash
 source install/setup.bash
-ros2 run ros2_detection detector_client run --model-path models/tennisball_600_seg_yolo11_v02.pt --confidence 0.5 --fps 30 --duration 15
+ros2 run ros2_detection detector_client run --model-path model/tennisball_600_seg_yolo11_v02.pt --confidence 0.5 --fps 30 --duration 15
 ```
 
 Single actions are available if needed:
 
 ```bash
-ros2 run ros2_detection detector_client init --model-path models/tennisball_600_seg_yolo11_v02.pt
+ros2 run ros2_detection detector_client init --model-path model/tennisball_600_seg_yolo11_v02.pt
 ros2 run ros2_detection detector_client start
 ros2 run ros2_detection detector_client stop
 ros2 run ros2_detection detector_client release
@@ -86,7 +86,7 @@ ros2 run ros2_detection detector_client release
 Example `/detector/init` request:
 
 ```bash
-ros2 service call /detector/init ros2_detection_interfaces/srv/Init "{model_type: yolo, model_path: models/tennisball_600_seg_yolo11_v02.pt, classes: [Tennisball], confidence: 0.5, use_decimation: false, use_spatial: false, use_temporal: true, use_hole_filling: true, use_mask_filter: true, color_resolution_width: 640, color_resolution_height: 480, fps: 30, rcnn_class_names: []}"
+ros2 service call /detector/init ros2_detection_interfaces/srv/Init "{model_type: yolo, model_path: model/tennisball_600_seg_yolo11_v02.pt, classes: [Tennisball], confidence: 0.5, use_decimation: false, use_spatial: false, use_temporal: true, use_hole_filling: true, use_mask_filter: true, color_resolution_width: 640, color_resolution_height: 480, fps: 30, rcnn_class_names: []}"
 ros2 service call /detector/start ros2_detection_interfaces/srv/Start "{}"
 ros2 service call /detector/stop ros2_detection_interfaces/srv/Stop "{}"
 ros2 service call /detector/release ros2_detection_interfaces/srv/Release "{}"

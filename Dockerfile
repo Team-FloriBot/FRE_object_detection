@@ -20,7 +20,7 @@ RUN mkdir -p /root/ros2_ws/src
 
 # Copy the project files
 COPY ros2_detection /root/ros2_ws/src/ros2_detection
-COPY models /root/ros2_ws/models
+COPY model /root/ros2_ws/model
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip

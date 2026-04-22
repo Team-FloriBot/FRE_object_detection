@@ -32,7 +32,7 @@ RUN pip install --no-cache-dir \
     pyrealsense2 \
     ultralytics
 COPY ros2_detection /root/ros2_ws/src/ros2_detection
-COPY models /root/ros2_ws/models
+COPY model /root/ros2_ws/model
 RUN . /opt/ros/humble/setup.sh && colcon build --packages-select ros2_detection
 CMD ["bash"]
 
