@@ -52,4 +52,9 @@ Thumbs.db
 *.pth
 imageset/
 
+output/
+backgrounds/
+raw_images/
+runs/
+
 
