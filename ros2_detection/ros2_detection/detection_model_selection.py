@@ -308,29 +308,36 @@ class ObjDetection:
     # YOLO Implementation
     # ---------------------------------------------------------
     def _detect_yolo(self, color_image):
-        results = self.model.predict(color_image, classes=self.class_ids, conf=self.conf, imgsz=640, verbose=False)
+        results = self.model.predict(
+            color_image,
+            classes=self.class_ids,
+            conf=self.conf,
+            imgsz=(self.H, self.W),
+            rect=True,
+            retina_masks=True,
+            verbose=False,
+        )
         annotated_image = color_image.copy()
         raw_detections = []
-
         result = results[0]
 
-        if result.masks is not None:
-            mask_counter = 0
+        if result.masks is not None and result.masks.data is not None:
             for box, mask_tensor in zip(result.boxes, result.masks.data):
-                # Convert mask tensor to numpy
-                mask = mask_tensor.cpu().numpy()
+                mask = mask_tensor.detach().cpu().numpy()
 
-                # Resize if necessary
-                if mask.shape != annotated_image.shape[:2]:
-                    mask = cv2.resize(mask, (annotated_image.shape[1], annotated_image.shape[0]),
-                                      interpolation=cv2.INTER_NEAREST)
+                if mask.shape != color_image.shape[:2]:
+                    mask = cv2.resize(
+                        mask,
+                        (color_image.shape[1], color_image.shape[0]),
+                        interpolation=cv2.INTER_NEAREST,
+                    )
 
-                # prepare object
+                mask = (mask > 0.5).astype(np.uint8)
                 det_entry = {
                     "class": self.model.names[int(box.cls[0])],
                     "confidence": float(box.conf[0]),
                     "mask": mask,
-                    "center": self._get_center(mask) # Mittelpunkt berechnen
+                    "center": self._get_center(mask)
                 }
                 raw_detections.append(det_entry)
         
