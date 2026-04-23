@@ -6,6 +6,7 @@ import numpy as np
 import time
 from pathlib import Path
 OUT_IMG = "output/images/test"
+OUT_IMG = "debug_images/detection_before_debug0.jpg"
 
 import cv2
 import numpy as np
@@ -66,7 +67,8 @@ class ObjDetection:
         
         # --> replace that with rs
         #ret, color_image = self.cap.read()
-        color_image = cv2.imread(os.path.join(OUT_IMG, out_name))
+        #color_image = cv2.imread(os.path.join(OUT_IMG, out_name))
+        color_image = cv2.imread(OUT_IMG)
 
 
         # --> replace that with rs
