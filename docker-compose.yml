@@ -12,12 +12,14 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video
     networks:
       - ros2_network
-    # For RealSense camera access on Windows/WSL2, mount device
-    # devices:
-    #   - /dev/bus/usb
+    # For direct RealSense camera access (without ROS wrapper)
+    privileged: true
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
     volumes:
-      # Mount model files
-      - ./model:/root/project/model:ro
+      - /dev:/dev
+    command: 
+      bash -c "source /opt/ros/humble/setup.bash && source /root/ros2_ws/install/setup.bash && ros2 run ros2_detection detector_node"
     stdin_open: true
     tty: true
 

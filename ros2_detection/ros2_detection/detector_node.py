@@ -2,12 +2,11 @@ import json
 import time
 from typing import Any, Dict, List, Optional
 
+import numpy as np
 import rclpy
 from rclpy.node import Node
 from ros2_detection_interfaces.srv import Init, Release, Start, Stop
 from std_msgs.msg import String
-import rclpy
-from rclpy.node import Node
 from cv_bridge import CvBridge
 from realsense2_camera_msgs.msg import RGBD
 
@@ -69,6 +68,8 @@ class DetectionNode(Node):
         self.bridge = CvBridge()
         self.color_img = None
         self.depth_img = None
+        self.depth_camera_info = None
+        self._last_waiting_frame_status_sec = 0.0
 
         self.sub = self.create_subscription(
             RGBD,
@@ -82,6 +83,7 @@ class DetectionNode(Node):
     def realsense_callback(self, msg):
         self.color_img = self.bridge.imgmsg_to_cv2(msg.color, "bgr8")
         self.depth_img = self.bridge.imgmsg_to_cv2(msg.depth, "passthrough")
+        self.depth_camera_info = getattr(msg, "depth_camera_info", None)
 
         print("RGBD:", self.color_img.shape, self.depth_img.shape)
 
@@ -112,9 +114,9 @@ class DetectionNode(Node):
                 },
             }
 
-            if not isinstance(config["classes"], list) or len(config["classes"]) == 0:
+            if not isinstance(config["classes"], list):
                 response.success = False
-                response.message = "Config field 'classes' must be a non-empty list."
+                response.message = "Config field 'classes' must be a list."
                 return response
 
             self._release_detector()
@@ -133,12 +135,18 @@ class DetectionNode(Node):
                 conf=config["confidence"]
             )
 
+             
+            
             # Initialize camera
             self.detector.initialize_realsense(
                 color_resolution=tuple(config["camera"]["color_resolution"]),
                 fps=config["camera"]["fps"],
                 get_realsense_images = self.get_realsense_images if config["camera"]["use_realsense_ros_wrapper"] else None
             )
+
+            if config["camera"]["use_realsense_ros_wrapper"] and self.detector.depth_scale is None:
+                # RealSense ROS wrapper depth image is typically uint16 in millimeters.
+                self.detector.depth_scale = 0.001
 
             self.current_config = config
             self.detector_running = False  # Start will be a separate call
@@ -220,13 +228,36 @@ class DetectionNode(Node):
                 current_timer.cancel()
                 self.destroy_timer(current_timer)
 
-            detect_start = time.monotonic()
             frames = self.detector.get_frame()
-            aligned_frames = self.detector.align_frames(frames)
-            color_image, depth_image = self.detector.depth_filter(aligned_frames)
+            if self.detector.get_realsense_images is not None:
+                color_image, depth_image = frames
+
+                # ROS wrapper can briefly return no images at startup.
+                if color_image is None or depth_image is None:
+                    now = time.monotonic()
+                    if now - self._last_waiting_frame_status_sec > 2.0:
+                        self._publish_status("ready", "Waiting for RGBD frames on /camera/rgbd/image.")
+                        self._last_waiting_frame_status_sec = now
+                    return
+
+                # Depth from ROS wrapper is usually uint16 in mm, but some setups publish float meters.
+                if self.detector.depth_scale is None:
+                    if np.issubdtype(depth_image.dtype, np.floating):
+                        self.detector.depth_scale = 1.0
+                    else:
+                        self.detector.depth_scale = 0.001
+
+                self._update_detector_intrinsics_from_camera_info()
+            else:
+                aligned_frames = self.detector.align_frames(frames)
+                color_image, depth_image = self.detector.depth_filter(aligned_frames)
 
             if color_image is None or depth_image is None:
                 self._publish_status("error", "No valid color/depth frame available.")
+                return
+
+            if self.detector.fx == 0 or self.detector.fy == 0 or self.detector.depth_scale is None:
+                self._publish_status("error", "Missing camera intrinsics or depth scale.")
                 return
             
             objs_data, _ = self.detector.detect_obj(color_image)
@@ -266,6 +297,26 @@ class DetectionNode(Node):
                 elapsed_sec = time.monotonic() - cycle_start
                 remaining_sec = max(0.0, self.detection_period_sec - elapsed_sec)
                 self._schedule_next_detection(remaining_sec)
+
+    def _update_detector_intrinsics_from_camera_info(self) -> None:
+        """Update detector intrinsics from RGBD camera info when using ROS wrapper frames."""
+        if self.detector is None or self.depth_camera_info is None:
+            return
+
+        k = getattr(self.depth_camera_info, "k", None)
+        if not k or len(k) < 6:
+            return
+
+        fx = float(k[0])
+        fy = float(k[4])
+        cx = float(k[2])
+        cy = float(k[5])
+
+        if fx > 0.0 and fy > 0.0:
+            self.detector.fx = fx
+            self.detector.fy = fy
+            self.detector.cx = cx
+            self.detector.cy = cy
 
     def _schedule_next_detection(self, delay_sec: float) -> None:
         """Schedule the next detection cycle after the requested delay."""

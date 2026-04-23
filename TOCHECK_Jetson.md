@@ -28,7 +28,6 @@ RUN pip install --no-cache-dir \
     numpy \
     opencv-python \
     scikit-learn \
-    open3d \
     pyrealsense2 \
     ultralytics
 COPY ros2_detection /root/ros2_ws/src/ros2_detection

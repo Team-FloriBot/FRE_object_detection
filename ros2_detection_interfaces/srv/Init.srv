@@ -7,6 +7,7 @@ bool use_spatial
 bool use_temporal
 bool use_hole_filling
 bool use_mask_filter
+bool use_realsense_ros_wrapper
 int32 color_resolution_width
 int32 color_resolution_height
 int32 fps

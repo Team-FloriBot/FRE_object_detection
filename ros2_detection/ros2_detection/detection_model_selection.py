@@ -5,7 +5,6 @@ import os
 import numpy as np
 import cv2
 import pyrealsense2 as rs
-import open3d as o3d
 from ultralytics import YOLO
 from . import tracking
 from sklearn.neighbors import NearestNeighbors
@@ -108,9 +107,13 @@ class ObjDetection:
             yolo_path = _resolve_model_path(self.model_path, "tennisball_600_seg_yolo11_v02.pt")
             self.model = YOLO(yolo_path)
             
-            # Save classes to detect (Filter logic for YOLO)
-            self.class_ids = [id for id in self.model.names if self.model.names[id] in classes]
+            # Save available class names
             self.available_class_names = [self.model.names[id] for id in sorted(self.model.names.keys())]
+            
+            # Save classes to detect (Filter logic for YOLO)
+            # If classes is empty or None, detect all available classes
+            classes_to_detect = classes if classes else self.available_class_names
+            self.class_ids = [id for id in self.model.names if self.model.names[id] in classes_to_detect]
             
             if torch.cuda.is_available():
                 self.model.to('cuda')
@@ -157,9 +160,11 @@ class ObjDetection:
             self.available_class_names = [self.id_to_name[i] for i in range(num_classes)]
             
             # Filter class IDs based on user input
+            # If classes is empty or None, detect all available classes
+            classes_to_detect = classes if classes else self.available_class_names
             self.class_ids = [
                 cid for cid, cname in self.id_to_name.items()
-                if cname in classes
+                if cname in classes_to_detect
             ]
         else:
             raise ValueError("Invalid model_type. Please choose 'yolo' or 'rcnn'.")
@@ -303,7 +308,7 @@ class ObjDetection:
     # YOLO Implementation
     # ---------------------------------------------------------
     def _detect_yolo(self, color_image):
-        results = self.model.predict(color_image, classes=self.class_ids, conf=self.conf, imgsz=color_image.shape[:2], verbose=False)
+        results = self.model.predict(color_image, classes=self.class_ids, conf=self.conf, imgsz=640, verbose=False)
         annotated_image = color_image.copy()
         raw_detections = []
 
@@ -645,15 +650,6 @@ class ObjDetection:
 
         print(f"Starting camera stream using {self.model_type.upper()}... Press 'q' to quit.")
 
-        # Start Open3D Visualizer once
-        axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5, origin=[0,0,0])
-        vis = o3d.visualization.Visualizer()
-        vis.create_window("Live 3D Point Cloud", width=900, height=700)
-        pcd = o3d.geometry.PointCloud()
-   
-        vis.add_geometry(pcd)   # Point cloud
-        vis.add_geometry(axis)  # Add axes
-
         try:
             while True:
                 # Read frames
@@ -718,30 +714,6 @@ class ObjDetection:
                 if depth_image_masked is not None:
                     cv2.imshow("Detection - Depth - Mask", depth_image_masked_color)
 
-                # Update Open3D Point Cloud live
-                if len(pc_dict) > 0:
-                    all_points = []
-                    all_colors = []
-
-                    for data in pc_dict.values():
-                        all_points.append(data["points"])
-                        all_colors.append(data["colors"])
-
-                    points = np.concatenate(all_points, axis=0)
-                    colors = np.concatenate(all_colors, axis=0)
-
-                    pcd.points = o3d.utility.Vector3dVector(points)
-                    pcd.colors = o3d.utility.Vector3dVector(colors)
-                    vis.update_geometry(pcd)
-                    
-                    vis.poll_events()
-                    vis.update_renderer()
-                else:
-                    # Clear point cloud if no object detected (optional)
-                    # pcd.points = o3d.utility.Vector3dVector([])
-                    # vis.update_geometry(pcd)
-                    vis.poll_events()
-                    vis.update_renderer()
 
                 # Quit with 'q'
                 if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -749,7 +721,6 @@ class ObjDetection:
 
         finally:
             cv2.destroyAllWindows()
-            vis.destroy_window()
             self.stop_camera()
 
 if __name__ == "__main__":

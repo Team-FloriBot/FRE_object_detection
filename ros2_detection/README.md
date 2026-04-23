@@ -2,34 +2,6 @@
 
 ROS2 detector node for YOLO/Mask R-CNN object detection with RealSense depth fusion.
 
-## Build & Start
-
-From workspace root:
-
-```bash
-source /opt/ros/humble/setup.bash
-colcon build --packages-select ros2_detection_interfaces ros2_detection
-source install/setup.bash
-```
-
-Start detector node (Terminal 1):
-
-```bash
-ros2 launch ros2_detection detector.launch.py
-```
-
-## Model Setup
-
-Recommended model location:
-
-- `model/` at workspace root, e.g. `model/tennisball_600_seg_yolo11_v02.pt`
-
-Also possible:
-
-- absolute path
-- relative path from current working directory
-
-For YOLO, pass the `.pt` file via `/detector/init` or `detector_client --model-path`.
 
 ## Service/Topic API
 
@@ -62,24 +34,6 @@ Use the interfaces in this order:
 5. Call `/detector/stop`
 6. Call `/detector/release`
 
-## Fastest Way (Client)
-
-Terminal 2:
-
-```bash
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-ros2 run ros2_detection detector_client run --model-path model/yolo11_jute_stripe_yellow_paper-seg.pt --confidence 0.5 --duration 15 --use-realsense-ros-wrapper True
-```
-
-Single actions are available if needed:
-
-```bash
-ros2 run ros2_detection detector_client init --model-path model/tennisball_600_seg_yolo11_v02.pt
-ros2 run ros2_detection detector_client start
-ros2 run ros2_detection detector_client stop
-ros2 run ros2_detection detector_client release
-```
 
 ## Service Call Example (Manual)
 
@@ -94,11 +48,10 @@ ros2 service call /detector/release ros2_detection_interfaces/srv/Release "{}"
 
 Important `Init` fields:
 
-- `model_type`: `yolo` or `rcnn`
+- `use_realsense_ros_wrapper`: bool
 - `model_path`: path to weights file
 - `classes`: class filter list, e.g. `[Tennisball]`
 - `confidence`: threshold (e.g. `0.5`)
-- `fps`, `color_resolution_width`, `color_resolution_height`: camera setup
 
 You can also monitor outputs directly:
 
@@ -124,7 +77,3 @@ Example `/detector/results` payload (JSON string in `std_msgs/String`):
 }
 ```
 
-## Notes
-
-- Model paths are resolved relative to the current working directory.
-- A connected and configured RealSense camera is required.

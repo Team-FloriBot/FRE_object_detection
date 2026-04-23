@@ -1,76 +1,60 @@
-### Set up the Repository
-Setup Docker --> Explain here
+### Set up
+
 Clone the repository
 ```bash
 git clone https://github.com/astark146/crv_fieldrobotevent.git
-cd crv_fieldrobotevent
 ```
 
-Create and activate a Python virtual environment (Optional)
+Build the docker container, takes some time
 ```bash
-python -m venv .venv
-.\.venv\Scripts\activate
+docker compose build
 ```
 
-Install all required dependencies
-```bash
-pip install --upgrade pip
-pip install -r requirements.txt
-```
+You need the ros2_detection_interfaces package in your client workspace. So copy it, when your client is elsewhere.
 
-### ROS2 Detector Node
 
-A ROS2 detector node is available in `ros2_detection/ros2_detection/detector_node.py`.
+### Overview
 
-It wraps the package-local detection implementation and supports runtime model selection (`yolo` or `rcnn`) with service-based control and JSON-based status/result output.
-
-## Current Layout
-
-The repository is split into two clear layers:
-
-- `ros2_detection/` contains the active ROS2 package and the real runtime code.
-- `legacy/` contains compatibility entrypoints for older scripts that imported the project before ROS2.
-- The workspace root is now kept clean and only holds project-level files like the Docker and package docs.
-
-## Model Files
-
-Place new weights in the workspace-level `model/` folder when possible.
-
-available YOLO models: 
-- `model/tennisball_600_seg_yolo11_v02.pt`
-- `model/yolo11_jute_stripe_yellow_paper-seg.pt`
-- `model/yolo11n-seg.pt`
-
-If you set `model_path` to just the filename, the node will search the workspace root and `model/` automatically.
-The Docker image also copies `model/` into `/root/ros2_ws/model`.
+The ROS2 detector node wraps the package-local detection implementation. The package can use a yolo model to detect and localize objects. 
+The detector node control is service-based and publishes the camera results. See the README-file and detector_client node to get further informations about how to use the detector_node.
+detector_client is an example implementation which shows the basic usage with the following services and topics.
 
 Control services (order):
 - `/detector/init` -> `/detector/start` -> `/detector/stop` -> `/detector/release`
 
 Monitoring topics:
-- `/detector/model_info` (`std_msgs/String`, JSON)
+- `/detector/model_info` (`std_msgs/String`, JSON) 
 - `/detector/results` (`std_msgs/String`, JSON)
 - `/detector/status` (`std_msgs/String`, JSON)
 
-Run the node:
+
+## Model Files
+
+To use your own YOLO model, add it to the workspace-level `model/` folder.
+
+currently available YOLO models: 
+- `model/tennisball_600_seg_yolo11_v02.pt`
+- `model/yolo11_jute_stripe_yellow_paper-seg.pt`
+- `model/yolo11n-seg.pt`
+
+
+### Use the detector
+
+Start the docker container to launch the detector_node.
 ```bash
-ros2 run ros2_detection detector_node
+docker compose up -d
 ```
 
-Build and source first:
+Start the example detector_client in this workspace:
 ```bash
+docker compose exec detecor_client -it bash
 source /opt/ros/humble/setup.bash
-colcon build --packages-select ros2_detection_interfaces ros2_detection
 source install/setup.bash
+ros2 run ros2_detection_client detector_client run --model-path model/yolo11_jute_stripe_yellow_paper-seg.pt --confidence 0.5 --duration 15 --use-realsense-ros-wrapper
 ```
 
-Recommended control client:
-```bash
-ros2 run ros2_detection detector_client run --model-path model/yolo11_jute_stripe_yellow_paper-seg.pt --confidence 0.5 --duration 15 --use-realsense-ros-wrapper True
-```
-
-When using with realsense ros wrapper:
-start the realsene laun file with the follwoing parameters:
+When using with RealSense ROS wrapper:
+start the RealSene launch file with the follwoing parameters:
 ```bash
 ros2 launch realsense2_camera rs_launch.py \ 
 enable_rgbd:=true \ 
@@ -81,7 +65,11 @@ enable_depth:=true \
 color_module.profile:=640x480x30
 ```
 
-For detailed usage, see:
+When using the RealSense camera on a Windows-system (either with the RealSense ROS wrapper, or directly with our detector_node) you need to attach tha camera to wsl with usbipd.
+
+
+### For detailed usage, see:
+
 - `ros2_detection/README.md`
-- `ros2_detection/ros2_detection/detector_client.py`
+- `ros2_detection_client/ros2_detection_client/detector_client.py`
 
