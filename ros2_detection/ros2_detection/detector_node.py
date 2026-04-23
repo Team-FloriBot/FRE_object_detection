@@ -1,4 +1,5 @@
 import json
+import os
 import time
 from typing import Any, Dict, List, Optional
 
@@ -9,6 +10,7 @@ from ros2_detection_interfaces.srv import Init, Release, Start, Stop
 from std_msgs.msg import String
 from cv_bridge import CvBridge
 from realsense2_camera_msgs.msg import RGBD
+import cv2
 
 from .detection_model_selection import ObjDetection
 
@@ -64,6 +66,10 @@ class DetectionNode(Node):
             "/detector/release",
             self._handle_release,
         )
+
+        self.detections_counter = 0
+        self.debug_image_dir = os.environ.get("DETECTION_DEBUG_DIR", "/root/ros2_ws/debug_images")
+        os.makedirs(self.debug_image_dir, exist_ok=True)
 
         self.bridge = CvBridge()
         self.color_img = None
@@ -260,7 +266,9 @@ class DetectionNode(Node):
                 self._publish_status("error", "Missing camera intrinsics or depth scale.")
                 return
             
-            objs_data, _ = self.detector.detect_obj(color_image)
+            
+            objs_data, annotated_image = self.detector.detect_obj(color_image)
+            
 
             fused_objs_data, _ = self.detector.fuse(color_image, depth_image, objs_data)
 
@@ -280,6 +288,12 @@ class DetectionNode(Node):
                 }
 
                 detections.append(entry)
+
+            if detections:
+                self.detections_counter += 1
+            if self.detections_counter <= 5:
+                cv2.imwrite(os.path.join(self.debug_image_dir, f"detection_before_debug{self.detections_counter}.jpg"), color_image)
+                cv2.imwrite(os.path.join(self.debug_image_dir, f"detection_debug{self.detections_counter}.jpg"), annotated_image)
 
             result_payload = {
                 "ok": True,
