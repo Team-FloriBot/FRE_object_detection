@@ -6,10 +6,10 @@ services:
       dockerfile: generate_synthetic/Dockerfile
     container_name: synthetic_generator
     volumes:
-      - ./raw_images:/app/raw_images
+      - ./object_images:/app/object_images
       - ./backgrounds:/app/backgrounds
-      - ./output:/app/output
-    command: ["./run.sh"]
+      - ./dataset:/app/dataset
+    command: ["python3", "generate_synthetic.py"]
 
   yolo-trainer:
     profiles: ["train"] # Gehört zum Profil 'train'
@@ -18,7 +18,8 @@ services:
       dockerfile: training/Dockerfile
     container_name: yolo_trainer
     volumes:
-      - ./output:/usr/src/app/output
+      - ./dataset:/usr/src/app/dataset
+      - ./debug_images:/usr/src/app/debug_images
       - ./model:/usr/src/app/model
       - ./training:/usr/src/app/training
       - ./runs:/usr/src/app/runs
@@ -33,7 +34,7 @@ services:
       dockerfile: training/Dockerfile
     container_name: yolo_detector
     volumes:
-      - ./output:/usr/src/app/output
+      - ./dataset:/usr/src/app/dataset
       - .:/usr/src/app
       - ./model:/model
       - ./runs:/usr/src/app/runs

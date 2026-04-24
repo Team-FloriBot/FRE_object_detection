@@ -35,7 +35,7 @@ runs/
 build/
 
 backgrounds/
-raw_images/
+object_images/
 
-output/
+dataset/
 debug_images/

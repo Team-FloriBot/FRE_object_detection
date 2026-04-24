@@ -1,11 +1,12 @@
 from pathlib import Path
+from xml.parsers.expat import model
 
 import yaml
 from ultralytics import YOLO
 
 
 def _load_class_config(project_root: Path) -> tuple[int, list[str]]:
-    source_yaml = project_root / "raw_images" / "data.yaml"
+    source_yaml = project_root / "object_images" / "data.yaml"
     if source_yaml.exists():
         data = yaml.safe_load(source_yaml.read_text(encoding="utf-8"))
         names = data.get("names", [])
@@ -18,11 +19,11 @@ def _load_class_config(project_root: Path) -> tuple[int, list[str]]:
 
 
 def _build_output_data_yaml(project_root: Path) -> Path:
-    output_dir = project_root / "output"
+    output_dir = project_root / "dataset"
     images_dir = output_dir / "images"
     labels_dir = output_dir / "labels"
     if not images_dir.exists() or not labels_dir.exists():
-        raise FileNotFoundError("Erwarte output/images und output/labels fuer das Training.")
+        raise FileNotFoundError("Erwarte dataset/images und dataset/labels fuer das Training.")
 
     nc, names = _load_class_config(project_root)
     data = {
@@ -41,47 +42,54 @@ def main() -> None:
     project_root = Path(__file__).resolve().parents[1]
     runs_dir = project_root / "runs"
 
-    model_path = project_root / "model" / "yolo11n-seg.pt"
-    model = YOLO(str(model_path if model_path.exists() else "yolo11m-seg.pt"))
+    model_path = project_root / "model" / "yolo26n-seg.pt"
+    model = YOLO(str(model_path if model_path.exists() else "yolo26n-seg.pt"))
 
     data_yaml = _build_output_data_yaml(project_root)
 
     model.train(
         data=str(data_yaml),
-        epochs=20,
+        epochs=60,
         imgsz=640,
-        batch=8,
+        batch=16,
         device="0",
         project=str(runs_dir),
-        name="yolo11_jute_stripe_yellow_paper",
+        name="yolo26n_jute_stripe_yellow_paper",
         exist_ok=True,
+
+        # --- REALISTISCHE FARBE ---
         hsv_h=0.015,
-        hsv_s=0.4,
-        hsv_v=0.3,
+        hsv_s=0.35,
+        hsv_v=0.25,
+
+        # --- REALISTISCHE GEOMETRIE ---
         degrees=5.0,
-        translate=0.1,
-        scale=0.2,
-        shear=1.0,
-        flipud=0.0,
-        fliplr=0.5,
-        mosaic=0.2,
+        translate=0.05,
+        scale=0.35,
+        shear=0.0,
+        flipud=0.0,   # Top-Down Kamera
+        fliplr=0.3,
+
+        # --- MIX-STRATEGIEN ---
+        mosaic=0.5,
         mixup=0.0,
-        patience=50,
+        copy_paste=0.0,
+
+        # --- TRAINING ---
         optimizer="AdamW",
-        lr0=0.002,
-        lrf=0.01,
-        weight_decay=0.0005,
-        warmup_epochs=3,
+        lr0=0.001,
+        patience=20,
         close_mosaic=10,
     )
+
 
     model.val(
         data=str(data_yaml),
         project=str(runs_dir),
-        name="yolo11_jute_stripe_yellow_paper_val",
+        name="yolo26n_jute_stripe_yellow_paper_val",
         exist_ok=True,
     )
-    model.save(str(project_root / "model" / "yolo11_jute_stripe_yellow_paper-seg.pt"))
+    model.save(str(project_root / "model" / "yolo26n_jute_stripe_yellow_paper-seg.pt"))
 
 
 if __name__ == "__main__":

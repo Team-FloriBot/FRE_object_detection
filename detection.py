@@ -5,15 +5,12 @@ import numpy as np
 #import pyrealsense2 as rs
 import time
 from pathlib import Path
-OUT_IMG = "output/images/test"
-OUT_IMG = "debug_images/detection_before_debug0.jpg"
+OUT_IMG = "dataset/images/test"
+OUT_IMG = "debug_images"
 
-import cv2
-import numpy as np
-from pathlib import Path
 """
-IMG = Path("output/images/train/synth_0.jpg")   # eine deiner Dateien
-LBL = Path("output/labels/train/synth_0.txt")   # passende Labeldatei
+IMG = Path("dataset/images/train/synth_0.jpg")   # eine deiner Dateien
+LBL = Path("dataset/labels/train/synth_0.txt")   # passende Labeldatei
 
 img = cv2.imread(str(IMG))
 h, w = img.shape[:2]
@@ -40,7 +37,7 @@ class ObjDetection:
         self.H=480
 
         # Initialize a YOLOE model
-        self.model = YOLO("/model/yolo11_jute_stripe_yellow_paper-seg.pt")
+        self.model = YOLO("/model/yolo26n_jute_stripe_yellow_paper-seg.pt")
         # Save classes to detect
         self.classes = classes
         self.class_ids = [id for id in self.model.names if self.model.names[id] in classes]
@@ -67,8 +64,8 @@ class ObjDetection:
         
         # --> replace that with rs
         #ret, color_image = self.cap.read()
-        #color_image = cv2.imread(os.path.join(OUT_IMG, out_name))
-        color_image = cv2.imread(OUT_IMG)
+        color_image = cv2.imread(os.path.join(OUT_IMG, out_name))
+        
 
 
         # --> replace that with rs
@@ -79,49 +76,66 @@ class ObjDetection:
 
     # ---------------------------------------------------------
     # Run Detection
-    # ---------------------------------------------------------
+        # ---------------------------------------------------------
     def detect_obj(self, color_image):
-        """""""""""""""""""""""""""
-        detect objects in frame
-        Input color_image
-        Output annotated_image, frame_mask --> classes, mask
-        """""""""""""""""""""""""""
+        color_image = cv2.resize(color_image, (self.W, self.H))
 
-        results = self.model.predict(color_image, classes=self.class_ids, conf=0.5)
-        #results = self.model.predict(color_image)
+        results = self.model.predict(
+            color_image,
+            classes=self.class_ids,
+            conf=0.25,
+            imgsz=640,
+            rect=True,
+        )
 
         annotated_image = color_image.copy()
-
         frame_masks = []
-
-        # Get the result object (YOLO returns a list, one item per image)
         result = results[0]
 
-        if result.masks is not None:
-            # Each entry in result.masks.data corresponds to a detected object's mask
-            for box, mask_tensor in zip(result.boxes, result.masks.data):
-                # Convert the mask tensor to a NumPy array
-                mask = mask_tensor.cpu().numpy()
+        # Falls YOLO keine Masken erzeugt
+        if result.masks is None:
+            return frame_masks, annotated_image
 
-                # Convert mask values from [0, 1] to [0, 255] for visualization
-                mask_uint8 = (mask * 255).astype("uint8")
+        import torch
+        import torch.nn.functional as F
 
-                # Create a blue overlay (BGR color order)
-                color_mask = np.zeros_like(annotated_image)
-                color_mask[:, :, 0] = mask_uint8  # Fill blue channel
+        orig_h, orig_w = color_image.shape[:2]
 
-                # Blend the mask overlay with the original image
-                alpha = 0.5  # Transparency factor (0 = transparent, 1 = opaque)
-                annotated_image = cv2.addWeighted(annotated_image, 1, color_mask, alpha, 0)
+        # Iteriere über alle Detektionen
+        for box, mask_tensor in zip(result.boxes, result.masks.data):
 
-                # Store the mask and its corresponding class name
-                frame_masks.append({
-                    "class": self.model.names[int(box.cls[0])],
-                    "mask": mask
-                })
+            # 1) Byte → Float konvertieren (Pflicht!)
+            mask_tensor = mask_tensor.float()
 
+            # 2) Auf Originalgröße skalieren
+            full_mask = F.interpolate(
+                mask_tensor.unsqueeze(0).unsqueeze(0),
+                size=(orig_h, orig_w),
+                mode='bilinear',
+                align_corners=False
+            ).squeeze().cpu().numpy()
+
+            # 3) Binarisieren
+            mask_uint8 = ((full_mask > 0.5) * 255).astype("uint8")
+
+            # 4) Overlay erzeugen
+            color_mask = np.zeros_like(annotated_image)
+            color_mask[mask_uint8 > 0] = [255, 0, 0]  # Blau
+
+            annotated_image = cv2.addWeighted(
+                annotated_image, 1,
+                color_mask, 0.5,
+                0
+            )
+
+            # 5) Ergebnis speichern
+            frame_masks.append({
+                "class": self.model.names[int(box.cls[0])],
+                "mask": mask_uint8
+            })
 
         return frame_masks, annotated_image
+
 
     # ---------------------------------------------------------
     # Fusion
@@ -167,5 +181,5 @@ class ObjDetection:
         self.stop_camera()
 
 if __name__ == "__main__":
-    person_detection = ObjDetection(["jute-stripe"])
+    person_detection = ObjDetection(["jute-stripe","yellow-paper"])
     person_detection.run()

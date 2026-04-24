@@ -17,11 +17,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY generate_synthetic/generate_synthetic.py ./generate_synthetic.py
 
 # Standard-Ordner erzeugen
-RUN mkdir -p raw_images/train/images \
-    && mkdir -p raw_images/train/labels \
+RUN mkdir -p object_images/train/images \
+    && mkdir -p object_images/train/labels \
     && mkdir -p backgrounds \
-    && mkdir -p output/images \
-    && mkdir -p output/labels
+    && mkdir -p dataset/images \
+    && mkdir -p dataset/labels
 
 # Startscript
 COPY generate_synthetic/run.sh ./run.sh
