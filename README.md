@@ -48,10 +48,10 @@ docker compose up -d
 
 Start the example detector_client in this workspace:
 ```bash
-docker compose exec detecor_client -it bash
+docker compose exec -it detector bash
 source /opt/ros/humble/setup.bash
 source install/setup.bash
-ros2 run ros2_detection_client detector_client run --model-path model/yolo11_jute_stripe_yellow_paper-seg.pt --confidence 0.5 --duration 15 --use-realsense-ros-wrapper
+ros2 run ros2_detection_client detector_client run --model-path model/yolo26n_jute_stripe_yellow_paper_02-seg.pt --confidence 0.5 --duration 15 --use-realsense-ros-wrapper
 ```
 
 When using with RealSense ROS wrapper:
