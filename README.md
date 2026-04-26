@@ -1,19 +1,4 @@
-### Set up the Repository
-
-Clone the repository
-```bash
-git clone https://github.com/astark146/crv_fieldrobotevent.git
-cd crv_fieldrobotevent
-```
-
-Create and activate a Python virtual environment (Optional)
-```bash
-python -m venv .venv
-.\.venv\Scripts\activate
-```
-
-Install all required dependencies
-```bash
-pip install --upgrade pip
-pip install -r requirements.txt
-```
+This is the repository for object detection tasks for our FloriBot.
+The two most important branches are:
+- docker_ros2 (module to use trained models to detect objects and publishing the results)
+- docker_gen_train_test (module to generate synthetic images, train models, and test them)

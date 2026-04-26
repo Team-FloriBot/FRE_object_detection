@@ -5,3 +5,35 @@ mask_rcnn_final.pth
 .venv
 imageset
 __pycache__
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Environments
+venv/
+.env
+.venv/
+.venv311/
+venv311/
+
+.imageset/
+imageset/
+# Jupyter / VSCode
+.ipynb_checkpoints/
+.vscode/
+
+# YOLO / Machine Learning
+
+yolo11m-seg.pt
+yolo11n-seg.pt
+yolo11n.pt
+*.pth
+*.onnx
+*.log
+
+# System
+.DS_Store
+Thumbs.db

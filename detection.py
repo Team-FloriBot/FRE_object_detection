@@ -160,6 +160,8 @@ class ObjDetection:
         if result.masks is not None:
             # Each entry in result.masks.data corresponds to a detected object's mask
             for box, mask_tensor in zip(result.boxes, result.masks.data):
+                if float(box.conf[0]) < self.conf:
+                    continue  # Skip detections below the confidence threshold
                 # Convert the mask tensor to a NumPy array
                 mask = mask_tensor.cpu().numpy()
                 #print(mask.shape)
