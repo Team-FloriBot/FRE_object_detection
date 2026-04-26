@@ -57,4 +57,6 @@ backgrounds/
 raw_images/
 runs/
 debug_images/
-
+dataset/
+object_images/
+model/
