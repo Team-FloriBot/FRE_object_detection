@@ -12,7 +12,11 @@ OUT_LABEL = "dataset/labels"
 os.makedirs(OUT_IMG, exist_ok=True)
 os.makedirs(OUT_LABEL, exist_ok=True)
 
-# Unterstützte Bildformate erweitern
+# Ziel- und Arbeitsauflösung
+TARGET_W, TARGET_H = 640, 480
+WORK_W, WORK_H = 1280*2, 960*2  # 2x
+
+# Unterstützte Bildformate
 VALID_EXT = (".jpg", ".jpeg", ".png", ".webp")
 
 def load_polygon_label(path):
@@ -28,7 +32,6 @@ def polygon_to_mask(img_shape, polygon):
     pts = polygon.astype(np.int32)
     cv2.fillPoly(mask, [pts], 255)
     return mask
-
 
 def transform_polygon(polygon, x_offset, y_offset, scale_x, scale_y):
     poly = polygon.copy()
@@ -64,12 +67,15 @@ def random_place_no_overlap(bg, obj, mask, polygon, total_mask, max_tries=50):
         obj_h, obj_w = obj.shape[:2]
 
     for _ in range(max_tries):
+        if bg_w - obj_w <= 0 or bg_h - obj_h <= 0:
+            return 0, 0, 0, 0, poly, False
+
         x = random.randint(0, bg_w - obj_w)
         y = random.randint(0, bg_h - obj_h)
 
         roi_mask = total_mask[y:y+obj_h, x:x+obj_w]
 
-        # --- Safety: mask in das erwartete Format bringen (uint8, single channel, gleiche Größe) ---
+        # Safety: mask in das erwartete Format bringen (uint8, single channel, gleiche Größe)
         mask_u = mask
 
         # Falls Maske float (0..1) -> in 0..255 uint8 konvertieren
@@ -88,66 +94,145 @@ def random_place_no_overlap(bg, obj, mask, polygon, total_mask, max_tries=50):
             mask_u = mask_u.astype(np.uint8)
 
         # Falls die Größen nicht übereinstimmen, Maske auf roi_mask-Größe skalieren (INTER_NEAREST)
+        if roi_mask.size == 0:
+            continue
         if mask_u.shape != roi_mask.shape:
             mask_u = cv2.resize(mask_u, (roi_mask.shape[1], roi_mask.shape[0]), interpolation=cv2.INTER_NEAREST)
 
         # Jetzt ist mask_u uint8 und hat dieselbe Form wie roi_mask → bitwise_and ist sicher
         overlap = cv2.bitwise_and(roi_mask, mask_u)
 
+    from shapely.geometry import Polygon
 
     if np.sum(overlap) == 0:
 
+        # --- 1. ROI aus Hintergrund holen ---
         roi_bg = bg[y:y+obj_h, x:x+obj_w].astype(np.float32)
 
+        # --- 2. Maske sicherstellen ---
         mask_u = mask.astype(np.uint8)
 
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))
-        eroded = cv2.erode(mask_u, kernel, iterations=1)
-        dilate = cv2.dilate(mask_u, kernel, iterations=1)
+        # --- 3. Objekt hart einsetzen ---
+        bg_patch = roi_bg.copy()
+        bg_patch[mask_u > 127] = obj.astype(np.float32)[mask_u > 127]
 
-        border = dilate - eroded  # 2 Pixel breiter Rand
-        border_blur = cv2.GaussianBlur(border.astype(np.float32), (5,5), 2)
+        # --- 4. Kontur -> Polygon ---
+        cnts, _ = cv2.findContours(mask_u, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not cnts:
+            return 0, 0, 0, 0, poly, False
+
+        cnt = max(cnts, key=cv2.contourArea).squeeze()
+        poly_shapely = Polygon(cnt)
+
+        # --- 5. Randbereich: -1 bis +3 px ---
+        poly_inner = poly_shapely.buffer(-1)
+        poly_outer = poly_shapely.buffer(2)
+
+        if poly_inner.geom_type == "MultiPolygon":
+            poly_inner = max(poly_inner.geoms, key=lambda p: p.area)
+        if poly_outer.geom_type == "MultiPolygon":
+            poly_outer = max(poly_outer.geoms, key=lambda p: p.area)
+
+        mask_inner = np.zeros_like(mask_u)
+        mask_outer = np.zeros_like(mask_u)
+
+        if poly_inner.is_valid and not poly_inner.is_empty:
+            pts_inner = np.array(list(poly_inner.exterior.coords), dtype=np.int32)
+            cv2.fillPoly(mask_inner, [pts_inner], 255)
+
+        pts_outer = np.array(list(poly_outer.exterior.coords), dtype=np.int32)
+        cv2.fillPoly(mask_outer, [pts_outer], 255)
+
+        # Randbereich = zwischen inner und outer
+        border_region = (mask_outer > 0) & (mask_inner == 0)
+
+        # --- 6. Schwarze Pixel NUR im Randbereich entfernen ---
+        # Durchschnittshelligkeit des Objekts
+        obj_gray = cv2.cvtColor(obj.astype(np.uint8), cv2.COLOR_BGR2GRAY)
+        mean_brightness = np.mean(obj_gray)
+
+        # Dynamischer Threshold
+        # dunkle Objekte → 10–30
+        # mittlere Objekte → 40–80
+        # helle Objekte → 100–180
+        black_threshold = np.interp(mean_brightness, [0, 255], [10, 150])
+        black_threshold = int(black_threshold)
+        black = obj_gray < black_threshold
+
+
+
+        black_in_border = np.logical_and(black, border_region)
+        bg_patch[black_in_border] = roi_bg[black_in_border]
+
+        # --- 7. EIN Feather-Ring ---
+        feather_inner_px = 2   # 1% der Höhe
+        feather_outer_px = 5   # 4% der Höhe
+
+        feather_inner = poly_shapely.buffer(-feather_inner_px)
+        feather_outer = poly_shapely.buffer(feather_outer_px)
+
+        if feather_inner.geom_type == "MultiPolygon":
+            feather_inner = max(feather_inner.geoms, key=lambda p: p.area)
+        if feather_outer.geom_type == "MultiPolygon":
+            feather_outer = max(feather_outer.geoms, key=lambda p: p.area)
+
+        mask_f_in = np.zeros_like(mask_u)
+        mask_f_out = np.zeros_like(mask_u)
+
+        if feather_inner.is_valid and not feather_inner.is_empty:
+            pts_f_in = np.array(list(feather_inner.exterior.coords), dtype=np.int32)
+            cv2.fillPoly(mask_f_in, [pts_f_in], 255)
+
+        pts_f_out = np.array(list(feather_outer.exterior.coords), dtype=np.int32)
+        cv2.fillPoly(mask_f_out, [pts_f_out], 255)
+
+        # Feather-Ring
+        border_f = (mask_f_out.astype(np.float32) - mask_f_in.astype(np.float32))
+        border_f = np.clip(border_f, 0, 255).astype(np.uint8)
+
+        blur_size = max(5, int(feather_outer_px * 1.2) | 1)  # immer ungerade
+        blur_sigma = feather_outer_px * 0.35
+
+        border_blur = cv2.GaussianBlur(border_f.astype(np.float32),
+                                    (9, 9),
+                                    5)
+
 
         # Soft mask
-        mask_soft = np.clip(eroded.astype(np.float32) + border_blur, 0, 255).astype(np.uint8)
-        alpha = (mask_soft.astype(np.float32) / 255.0)[..., None]
+        mask_soft = mask_f_in.astype(np.float32)
+        mask_soft[border_f > 0] = border_blur[border_f > 0]
 
-        # Schwarze Pixel finden
-        gray = cv2.cvtColor(obj, cv2.COLOR_BGR2GRAY)
-        black = gray < 100
+        # --- 8. Alpha-Maske ---
+        alpha = ((mask_soft / 255.0) ** 1.2)[..., None]
 
-        # Nur dort schwarze Pixel ersetzen, wo die Maske weich ist
-        # (mask_soft < 255 bedeutet: Übergangsbereich)
-        soft_region = mask_soft < 255
-        black_soft = np.logical_and(black, soft_region)
 
-        obj = obj.astype(np.float32)
-        obj[black_soft] = roi_bg[black_soft]
+        # --- 9. Finales Blending ---
+        blended = (alpha * bg_patch + (1 - alpha) * roi_bg).astype(np.uint8)
 
-        # Blending
-        obj_f = obj.astype(np.float32)
-        blended = (alpha * obj_f + (1 - alpha) * roi_bg).astype(np.uint8)
-
+        # --- 10. In Hintergrund einsetzen ---
         bg[y:y+obj_h, x:x+obj_w] = blended
 
+        # --- 11. total_mask aktualisieren ---
         total_mask[y:y+obj_h, x:x+obj_w] = cv2.bitwise_or(
-            roi_mask, (mask > 127).astype(np.uint8) * 255
+            roi_mask, (mask_u > 127).astype(np.uint8) * 255
         )
 
         return x, y, obj_h, obj_w, poly, True
 
 
+
+
     return 0, 0, 0, 0, poly, False
-    
+
 # --- CONFIGURATION ---
 NUM_GENERATED_IMAGES = 200       # Wie viele Bilder insgesamt erstellt werden sollen
 
 OBJS_PER_IMAGE = (1, 6)         # Zufällige Anzahl (Min, Max) an Objekten pro Bild
-SCALE_RANGE = (0.2, 0.8)        # Skalierungsfaktor relativ zum Hintergrund (Min, Max)
+SCALE_RANGE = (0.4, 0.9)        # 20–80% der Hintergrundhöhe/Breite
 ROTATION_RANGE = (-20, 20)      # Drehung in Grad
 FLIP_PROB = 0.5                 # 50% Chance für horizontales Spiegeln
-BRIGHTNESS_RANGE = (0.6, 1.4)   # Helligkeits-Augmentation (0.7 = dunkler, 1.3 = heller)
-BLUR_PROB = 0.2                 # Chance für leichte Unschärfe (fokussiert vs. unfokussiert)
+BRIGHTNESS_RANGE = (0.6, 1.4)   # Helligkeits-Augmentation
+BLUR_PROB = 0.2                 # Chance für leichte Unschärfe
 
 # --- OUTDOOR AUGMENTATION CONFIG ---
 MOTION_BLUR_PROB = 0.1
@@ -158,12 +243,12 @@ JPEG_ARTIFACT_PROB = 0.1
 
 # --- BACKGROUND AUGMENTATION CONFIG ---
 BG_DISTRIBUTION = {
-    "target_context": 0.8,          # Anteil von Hintergründen, die zum Zielkontext passen (z.B. Straßen, Parkplätze)
-    "outside_context": 0.2,         # Anteil von Hintergründen, die nicht zum Zielkontext passen (z.B. Innenräume, Natur)
+    "target_context": 0.8,
+    "outside_context": 0.2,
 }
 OBJECT_DISTRIBUTION = {
-    "target_context": 0.85,          # Anteil BG_DISTRIBUTION von Objekten im Zielkontext
-    "outside_context": 0.15,         # Anteil von BG_DISTRIBUTION von Objekten im Außenkontext
+    "target_context": 0.85,
+    "outside_context": 0.15,
 }
 
 BG_SHADOW_PROB = 0.15
@@ -173,20 +258,14 @@ BG_CONTRAST_PROB = 0.10
 BG_JPEG_ARTIFACT_PROB = 0.10
 BG_HAZE_PROB = 0.05
 
-
-# ---------------------
-
-# ---------------------------------------------------------
-# Train/Val/Test Split konfigurieren
-# ---------------------------------------------------------
-TRAIN_SPLIT = 0.7   # 70%
-VAL_SPLIT = 0.2     # 20%
-TEST_SPLIT = 0.1    # 10%
+# Train/Val/Test Split
+TRAIN_SPLIT = 0.7
+VAL_SPLIT = 0.2
+TEST_SPLIT = 0.1
 
 assert abs((TRAIN_SPLIT + VAL_SPLIT + TEST_SPLIT) - 1.0) < 1e-6, \
     "Splits müssen zusammen 1.0 ergeben!"
 
-# Zielordner erstellen
 for split in ["train", "val", "test"]:
     os.makedirs(f"dataset/images/{split}", exist_ok=True)
     os.makedirs(f"dataset/labels/{split}", exist_ok=True)
@@ -199,7 +278,7 @@ def choose_split():
         return "val"
     else:
         return "test"
-    
+
 def augment_background(bg):
     h, w = bg.shape[:2]
 
@@ -241,7 +320,6 @@ def augment_background(bg):
         alpha = random.uniform(0.05, 0.15)
         bg = cv2.addWeighted(bg, 1 - alpha, haze, alpha, 0)
 
-    
     return bg
 
 def scale_object_relative_to_bg(obj, bg_w, bg_h, scale):
@@ -257,22 +335,9 @@ def scale_object_relative_to_bg(obj, bg_w, bg_h, scale):
 
     # Mindestgröße absichern
     factor = max(factor, max(1/h, 1/w))
-
-    
     return factor
 
-
 def augment_object(obj, mask, polygon_local):
-    # 1. Skalierung
-    scale = scale_object_relative_to_bg(
-        obj, 640, 480, random.uniform(*SCALE_RANGE)
-    )
-
-    obj = cv2.resize(obj, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
-    mask = cv2.resize(mask, None, fx=scale, fy=scale, interpolation=cv2.INTER_NEAREST)
-
-
-
     # 2. Horizontal Flip
     if random.random() < FLIP_PROB:
         obj = cv2.flip(obj, 1)
@@ -291,7 +356,7 @@ def augment_object(obj, mask, polygon_local):
     M[0, 2] += (new_w - w) / 2
     M[1, 2] += (new_h - h) / 2
 
-    # ❗ WICHTIG: KEIN Schwarz reinziehen, aber auch KEIN frühzeitiges Mask-Cutting
+    # Kein Schwarz reinziehen, aber auch kein frühzeitiges Mask-Cutting
     obj = cv2.warpAffine(
         obj, M, (new_w, new_h),
         flags=cv2.INTER_LINEAR,
@@ -310,7 +375,7 @@ def augment_object(obj, mask, polygon_local):
     mask_bin = (mask > 127).astype(np.uint8)
 
     # 2. Rand extrahieren
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     mask_eroded = cv2.erode(mask_bin, kernel, iterations=1)
     mask_dilated = cv2.dilate(mask_bin, kernel, iterations=1)
     border = cv2.subtract(mask_dilated, mask_eroded)   # nur Randpixel
@@ -327,14 +392,11 @@ def augment_object(obj, mask, polygon_local):
     # 5. Glätten
     mask_bin = cv2.morphologyEx(mask_bin, cv2.MORPH_CLOSE, kernel, iterations=1)
 
-
-
-    # 6. Helligkeit (wie vorher)
+    # 6. Helligkeit
     brightness = random.uniform(*BRIGHTNESS_RANGE)
     obj = cv2.convertScaleAbs(obj * brightness)
 
-    # --- OUTDOOR AUGS NUR AUF OBJ ---
-
+    # OUTDOOR AUGS NUR AUF OBJ
     if random.random() < MOTION_BLUR_PROB:
         k = random.choice([3, 5, 7])
         angle_blur = random.uniform(-10, 10)
@@ -348,7 +410,6 @@ def augment_object(obj, mask, polygon_local):
 
     if random.random() < SHADOW_PROB:
         shadow = np.zeros_like(obj)
-
         x1, y1 = random.randint(0, max(0, w - 1)), 0
         x2, y2 = random.randint(0, max(0, w - 1)), h
 
@@ -379,7 +440,6 @@ def augment_object(obj, mask, polygon_local):
     # Konturen aus sauberer Binärmaske holen
     contours, _ = cv2.findContours(mask_for_contours, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-
     if len(contours) == 0:
         return obj, mask_bin * 255, None
 
@@ -388,21 +448,19 @@ def augment_object(obj, mask, polygon_local):
 
     return obj, mask_bin * 255, cnt
 
-
 def resize_and_center_crop(img, target_width=640, target_height=480):
     h, w = img.shape[:2]
     scale = min(w / target_width, h / target_height)
 
-    start_y = int(max(0, (h - target_height*scale) // 2))
-    start_x = int(max(0, (w - target_width*scale) // 2))
-    cropped_image = img[start_y: max(h,start_y + int(target_height*scale)), start_x: max(w, start_x + int(target_width*scale))]
+    start_y = int(max(0, (h - target_height * scale) // 2))
+    start_x = int(max(0, (w - target_width * scale) // 2))
+    cropped_image = img[
+        start_y: max(h, start_y + int(target_height * scale)),
+        start_x: max(w, start_x + int(target_width * scale))
+    ]
 
     final_img = cv2.resize(cropped_image, (target_width, target_height), interpolation=cv2.INTER_LANCZOS4)
-
-
     return final_img
-
-
 
 # Hauptschleife zur Generierung
 for i in range(NUM_GENERATED_IMAGES):
@@ -420,7 +478,6 @@ for i in range(NUM_GENERATED_IMAGES):
     # Hintergrund wählen und vorbereiten
     bg_name = random.choice(os.listdir(bg_dir))
     bg = cv2.imread(os.path.join(bg_dir, bg_name))
-    bg = cv2.imread(os.path.join(bg_dir, bg_name))
 
     if bg is None:
         print("❌ Hintergrund konnte nicht geladen werden:", bg_name)
@@ -430,29 +487,24 @@ for i in range(NUM_GENERATED_IMAGES):
         print("❌ Hintergrund zu klein oder korrupt:", bg_name, bg.shape)
         continue
 
-    bg = resize_and_center_crop(bg, 640, 480) # Für Querformat
-
     # Hintergrund augmentieren
     bg = augment_background(bg)
 
+    # Auf Arbeitsauflösung bringen (2x)
+    bg = resize_and_center_crop(bg, WORK_W, WORK_H)
     bg_h, bg_w = bg.shape[:2]
-    
-    labels_to_save = []
 
-    # 1. Belegungsmaske für dieses Bild initialisieren (alles schwarz)
+    # Belegungsmaske
     total_mask = np.zeros((bg_h, bg_w), dtype=np.uint8)
-    labels_to_save = []
+    labels_to_save = []   # speichert absolute Polygone in Arbeitsauflösung
 
     if put_object_on_image:
-
-        # Zufällige Anzahl an Objekten platzieren
         num_objs = random.randint(*OBJS_PER_IMAGE)
         for _ in range(num_objs):
-            # Zufälliges Quellbild wählen
-            img_name = random.choice([f for f in os.listdir(os.path.join(OBJECT_DIR, "images")) if f.lower().endswith(VALID_EXT)])
-            
-            if not img_name.lower().endswith(VALID_EXT):
-                continue
+            img_name = random.choice([
+                f for f in os.listdir(os.path.join(OBJECT_DIR, "images"))
+                if f.lower().endswith(VALID_EXT)
+            ])
 
             img_path = os.path.join(OBJECT_DIR, "images", img_name)
             label_path = os.path.join(OBJECT_DIR, "labels", img_name.rsplit(".", 1)[0] + ".txt")
@@ -461,6 +513,9 @@ for i in range(NUM_GENERATED_IMAGES):
                 continue
 
             img = cv2.imread(img_path)
+            if img is None:
+                continue
+
             h, w = img.shape[:2]
 
             cls, polygon_norm = load_polygon_label(label_path)
@@ -468,74 +523,87 @@ for i in range(NUM_GENERATED_IMAGES):
             polygon[:, 0] *= w
             polygon[:, 1] *= h
 
-
             mask = polygon_to_mask(img.shape, polygon)
             obj = cv2.bitwise_and(img, img, mask=mask)
+            
 
             ys, xs = np.where(mask > 0)
             if len(ys) == 0 or len(xs) == 0:
                 print("❌ Maske leer, Objekt wird übersprungen")
                 continue
 
+            # --- Objekt relativ zum Hintergrund skalieren (20–80% der BG-Höhe/Breite) ---
+            rel_scale = random.uniform(*SCALE_RANGE)
+            factor = scale_object_relative_to_bg(obj, bg_w, bg_h, rel_scale)
+            
+
+            img = cv2.resize(img, None, fx=factor, fy=factor, interpolation=cv2.INTER_LINEAR)
+            mask = cv2.resize(mask, None, fx=factor, fy=factor, interpolation=cv2.INTER_NEAREST)
+            obj = cv2.bitwise_and(img, img, mask=mask)
+
+            polygon_scaled = polygon * factor
+
+            ys, xs = np.where(mask > 0)
+            if len(ys) == 0 or len(xs) == 0:
+                print("❌ Maske nach Skalierung leer, Objekt wird übersprungen")
+                continue
+
             y_min, y_max = ys.min(), ys.max()
             x_min, x_max = xs.min(), xs.max()
 
-
             obj_crop = obj[y_min:y_max + 1, x_min:x_max + 1]
             mask_crop = mask[y_min:y_max + 1, x_min:x_max + 1]
-
-            # optional: entferne 1px Rand am Crop, falls Originalbilder Randartefakte haben
-            if obj_crop.shape[0] > 2 and obj_crop.shape[1] > 2:
-                obj_crop, mask_crop = obj_crop[1:-1, 1:-1], mask_crop[1:-1, 1:-1]
-
 
             if obj_crop.size == 0 or mask_crop.size == 0:
                 print("❌ Crop ist leer:", obj_crop.shape, mask_crop.shape)
                 continue
 
-
-            polygon_local = polygon.copy()
+            polygon_local = polygon_scaled.copy()
             polygon_local[:, 0] -= x_min
             polygon_local[:, 1] -= y_min
 
-            # Augmentation anwenden – polygon_local wird ignoriert
+            # Augmentation anwenden
             aug_obj, aug_mask, aug_poly = augment_object(obj_crop, mask_crop, polygon_local)
             if aug_poly is None:
                 continue
 
-            
-            # 2. Platzieren mit Überlappungs-Check
+            # Platzieren mit Überlappungs-Check
             x_off, y_off, final_h, final_w, placed_poly, success = random_place_no_overlap(
                 bg, aug_obj, aug_mask, aug_poly, total_mask
             )
-            
+
             if success:
-                # Polygon an die globale Position verschieben
+                # Polygon an globale Position verschieben (Arbeitsauflösung)
                 final_poly = placed_poly + np.array([x_off, y_off])
 
-                # --- WICHTIG: Polygon clampen, damit keine Werte > Bildgröße entstehen ---
+                # Clamp in Arbeitsauflösung
                 final_poly[:, 0] = np.clip(final_poly[:, 0], 0, bg_w - 1)
                 final_poly[:, 1] = np.clip(final_poly[:, 1], 0, bg_h - 1)
 
-                # Normalisieren (jetzt garantiert <= 1)
-                norm_poly = normalize_polygon(final_poly, bg_w, bg_h)
-
-                labels_to_save.append((cls, norm_poly))
+                labels_to_save.append((cls, final_poly))
             else:
                 print(f"Bild {i}: Kein Platz für ein weiteres Objekt gefunden.")
 
-
     # Speichern
     split = choose_split()
-
     out_name = f"synth_{i}.jpg"
 
-    # Bild speichern
-    cv2.imwrite(os.path.join(f"dataset/images/{split}", out_name), bg)
+    # Vor dem Speichern: Bild auf Zielauflösung bringen
+    bg_final = resize_and_center_crop(bg, TARGET_W, TARGET_H)
 
-    # Label speichern
+    # Polygone von Arbeitsauflösung auf Zielauflösung skalieren und normalisieren
+    scale_x = TARGET_W / bg_w
+    scale_y = TARGET_H / bg_h
+
     with open(os.path.join(f"dataset/labels/{split}", f"synth_{i}.txt"), "w") as f:
-        for c, poly in labels_to_save:
-            poly_str = " ".join([f"{coord[0]:.6f} {coord[1]:.6f}" for coord in poly])
+        for c, poly_abs in labels_to_save:
+            poly_scaled = poly_abs.copy()
+            poly_scaled[:, 0] *= scale_x
+            poly_scaled[:, 1] *= scale_y
+
+            norm_poly = normalize_polygon(poly_scaled, TARGET_W, TARGET_H)
+            poly_str = " ".join([f"{coord[0]:.6f} {coord[1]:.6f}" for coord in norm_poly])
             f.write(f"{c} {poly_str}\n")
 
+    # Bild speichern
+    cv2.imwrite(os.path.join(f"dataset/images/{split}", out_name), bg_final)
