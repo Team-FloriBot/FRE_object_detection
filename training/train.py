@@ -49,12 +49,12 @@ def main() -> None:
 
     model.train(
         data=str(data_yaml),
-        epochs=60,
+        epochs=100,
         imgsz=640,
         batch=16,
         device="0",
         project=str(runs_dir),
-        name="yolo26n_jute_stripe_yellow_paper",
+        name="yolo26n_jute_stripe_yellow_paper_02",
         exist_ok=True,
 
         # --- REALISTISCHE FARBE ---
@@ -86,10 +86,10 @@ def main() -> None:
     model.val(
         data=str(data_yaml),
         project=str(runs_dir),
-        name="yolo26n_jute_stripe_yellow_paper_val",
+        name="yolo26n_jute_stripe_yellow_paper_02_val",
         exist_ok=True,
     )
-    model.save(str(project_root / "model" / "yolo26n_jute_stripe_yellow_paper-seg.pt"))
+    model.save(str(project_root / "model" / "yolo26n_jute_stripe_yellow_paper_02-seg.pt"))
 
 
 if __name__ == "__main__":

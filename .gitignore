@@ -34,8 +34,13 @@ runs/
 
 build/
 
-backgrounds/
-object_images/
+backgrounds/outside_context/*
+backgrounds/target_context/*
+object_images/objects_only/*
+object_images/use_like_is/*
+object_images/*.yaml
+object_images/*.txt
 
-dataset/
-debug_images/
+dataset/*
+
+model/*

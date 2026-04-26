@@ -19,7 +19,6 @@ services:
     container_name: yolo_trainer
     volumes:
       - ./dataset:/usr/src/app/dataset
-      - ./debug_images:/usr/src/app/debug_images
       - ./model:/usr/src/app/model
       - ./training:/usr/src/app/training
       - ./runs:/usr/src/app/runs

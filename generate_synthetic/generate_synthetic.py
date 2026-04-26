@@ -3,7 +3,8 @@ import os
 import random
 import numpy as np
 
-OBJECT_DIR = "object_images/train"
+OBJECT_DIR = "object_images/objects_only"
+IMAGE_DIR = "object_images/use_like_is"
 BG_DIR_OUT = "backgrounds/outside_context"
 BG_DIR_TAR = "backgrounds/target_context"
 OUT_IMG = "dataset/images"
@@ -112,9 +113,45 @@ def random_place_no_overlap(bg, obj, mask, polygon, total_mask, max_tries=50):
         # --- 2. Maske sicherstellen ---
         mask_u = mask.astype(np.uint8)
 
+        # =========================================================
+        # 🔥 NEU: COLOR + BRIGHTNESS MATCHING
+        # =========================================================
+        obj_f = obj.astype(np.float32)
+
+        # Helligkeit matchen
+        bg_gray = cv2.cvtColor(roi_bg.astype(np.uint8), cv2.COLOR_BGR2GRAY)
+        obj_gray = cv2.cvtColor(obj.astype(np.uint8), cv2.COLOR_BGR2GRAY)
+
+        bg_mean = np.mean(bg_gray)
+        obj_mean = np.mean(obj_gray)
+
+        brightness_factor = bg_mean / (obj_mean + 1e-6)
+
+        # 🔥 viel enger clampen!
+        brightness_factor = np.clip(brightness_factor, 0.8, 1.2)
+
+        # 🔥 nur teilweise anwenden
+        obj_f = obj_f * (0.7 + 0.3 * brightness_factor) * 1.08
+
+        # Farbshift
+        bg_mean_color = np.mean(roi_bg.reshape(-1, 3), axis=0)
+        obj_mean_color = np.mean(obj_f.reshape(-1, 3), axis=0)
+
+        color_shift = (bg_mean_color - obj_mean_color) * 0.2
+        obj_f += color_shift
+
+        obj_f = np.clip(obj_f, 5, 250)
+
+        # =========================================================
+        # 🔥 NEU: NOISE MATCHING
+        # =========================================================
+        noise = np.random.normal(0, 4, obj_f.shape).astype(np.float32)
+        obj_f += noise
+        obj_f = np.clip(obj_f, 0, 255)
+
         # --- 3. Objekt hart einsetzen ---
         bg_patch = roi_bg.copy()
-        bg_patch[mask_u > 127] = obj.astype(np.float32)[mask_u > 127]
+        bg_patch[mask_u > 127] = obj_f[mask_u > 127]
 
         # --- 4. Kontur -> Polygon ---
         cnts, _ = cv2.findContours(mask_u, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -143,30 +180,35 @@ def random_place_no_overlap(bg, obj, mask, polygon, total_mask, max_tries=50):
         pts_outer = np.array(list(poly_outer.exterior.coords), dtype=np.int32)
         cv2.fillPoly(mask_outer, [pts_outer], 255)
 
-        # Randbereich = zwischen inner und outer
         border_region = (mask_outer > 0) & (mask_inner == 0)
 
-        # --- 6. Schwarze Pixel NUR im Randbereich entfernen ---
-        # Durchschnittshelligkeit des Objekts
-        obj_gray = cv2.cvtColor(obj.astype(np.uint8), cv2.COLOR_BGR2GRAY)
+        # --- 6. Schwarze Pixel nur im Rand entfernen ---
+        obj_gray = cv2.cvtColor(obj_f.astype(np.uint8), cv2.COLOR_BGR2GRAY)
         mean_brightness = np.mean(obj_gray)
 
-        # Dynamischer Threshold
-        # dunkle Objekte → 10–30
-        # mittlere Objekte → 40–80
-        # helle Objekte → 100–180
-        black_threshold = np.interp(mean_brightness, [0, 255], [10, 150])
-        black_threshold = int(black_threshold)
+        black_threshold = int(np.interp(mean_brightness, [0, 255], [10, 150]))
         black = obj_gray < black_threshold
-
-
 
         black_in_border = np.logical_and(black, border_region)
         bg_patch[black_in_border] = roi_bg[black_in_border]
 
-        # --- 7. EIN Feather-Ring ---
-        feather_inner_px = 2   # 1% der Höhe
-        feather_outer_px = 5   # 4% der Höhe
+        # =========================================================
+        # 🔥 NEU: CONTACT SHADOW (ULTRA WICHTIG)
+        # =========================================================
+        shadow = cv2.GaussianBlur(mask_u.astype(np.float32), (21, 21), 10)
+        shadow = shadow / 255.0
+
+        # leicht nach unten verschieben
+        shadow = np.roll(shadow, shift=3, axis=0)
+
+        roi_bg_shadowed = roi_bg.copy()
+        roi_bg_shadowed *= (1 - shadow[..., None] * 0.35)
+
+        # =========================================================
+        # --- 7. Feather Ring (dein Code bleibt)
+        # =========================================================
+        feather_inner_px = 2
+        feather_outer_px = 5
 
         feather_inner = poly_shapely.buffer(-feather_inner_px)
         feather_outer = poly_shapely.buffer(feather_outer_px)
@@ -186,52 +228,44 @@ def random_place_no_overlap(bg, obj, mask, polygon, total_mask, max_tries=50):
         pts_f_out = np.array(list(feather_outer.exterior.coords), dtype=np.int32)
         cv2.fillPoly(mask_f_out, [pts_f_out], 255)
 
-        # Feather-Ring
         border_f = (mask_f_out.astype(np.float32) - mask_f_in.astype(np.float32))
         border_f = np.clip(border_f, 0, 255).astype(np.uint8)
 
-        blur_size = max(5, int(feather_outer_px * 1.2) | 1)  # immer ungerade
-        blur_sigma = feather_outer_px * 0.35
+        border_blur = cv2.GaussianBlur(border_f.astype(np.float32), (9, 9), 5)
 
-        border_blur = cv2.GaussianBlur(border_f.astype(np.float32),
-                                    (9, 9),
-                                    5)
-
-
-        # Soft mask
         mask_soft = mask_f_in.astype(np.float32)
         mask_soft[border_f > 0] = border_blur[border_f > 0]
 
-        # --- 8. Alpha-Maske ---
         alpha = ((mask_soft / 255.0) ** 1.2)[..., None]
 
+        # =========================================================
+        # --- 8. Finales Blending (JETZT mit Shadow!)
+        # =========================================================
+        blended = (alpha * bg_patch + (1 - alpha) * roi_bg_shadowed).astype(np.uint8)
 
-        # --- 9. Finales Blending ---
-        blended = (alpha * bg_patch + (1 - alpha) * roi_bg).astype(np.uint8)
-
-        # --- 10. In Hintergrund einsetzen ---
+        # --- 9. In Hintergrund einsetzen ---
         bg[y:y+obj_h, x:x+obj_w] = blended
 
-        # --- 11. total_mask aktualisieren ---
+        # --- 10. total_mask ---
         total_mask[y:y+obj_h, x:x+obj_w] = cv2.bitwise_or(
             roi_mask, (mask_u > 127).astype(np.uint8) * 255
         )
 
         return x, y, obj_h, obj_w, poly, True
 
-
+    return 0, 0, 0, 0, poly, False
 
 
     return 0, 0, 0, 0, poly, False
 
 # --- CONFIGURATION ---
 NUM_GENERATED_IMAGES = 200       # Wie viele Bilder insgesamt erstellt werden sollen
-
+USE_LIKE_IS = 10
 OBJS_PER_IMAGE = (1, 6)         # Zufällige Anzahl (Min, Max) an Objekten pro Bild
 SCALE_RANGE = (0.4, 0.9)        # 20–80% der Hintergrundhöhe/Breite
 ROTATION_RANGE = (-20, 20)      # Drehung in Grad
 FLIP_PROB = 0.5                 # 50% Chance für horizontales Spiegeln
-BRIGHTNESS_RANGE = (0.6, 1.4)   # Helligkeits-Augmentation
+BRIGHTNESS_RANGE = (0.7, 1.3)   # Helligkeits-Augmentation
 BLUR_PROB = 0.2                 # Chance für leichte Unschärfe
 
 # --- OUTDOOR AUGMENTATION CONFIG ---
@@ -462,8 +496,67 @@ def resize_and_center_crop(img, target_width=640, target_height=480):
     final_img = cv2.resize(cropped_image, (target_width, target_height), interpolation=cv2.INTER_LANCZOS4)
     return final_img
 
+all_images = [
+    f for f in os.listdir(os.path.join(IMAGE_DIR, "images"))
+    if f.lower().endswith(VALID_EXT)
+]
+
+random.shuffle(all_images)
+
 # Hauptschleife zur Generierung
 for i in range(NUM_GENERATED_IMAGES):
+
+    split = choose_split()
+    out_name = f"synth_{i}.jpg"
+
+    # -------------------------
+    # USE LIKE IS (1:1 Kopie)
+    # -------------------------
+    if i <= USE_LIKE_IS:
+        if i < USE_LIKE_IS * TRAIN_SPLIT:
+            split = "train"
+        elif i < USE_LIKE_IS * (TRAIN_SPLIT + VAL_SPLIT):
+            split = "val"
+        else:
+            split = "test"
+        print(f"Kopiere Bild {i+1}/{NUM_GENERATED_IMAGES}...")
+
+        img_name = all_images[i % len(all_images)]
+
+        img_path = os.path.join(IMAGE_DIR, "images", img_name)
+        label_path = os.path.join(
+            IMAGE_DIR, "labels",
+            img_name.rsplit(".", 1)[0] + ".txt"
+        )
+
+        img = cv2.imread(img_path)
+        if img is None:
+            print("❌ Bild konnte nicht geladen werden:", img_name)
+            continue
+
+        # Bild einfach speichern
+        cv2.imwrite(
+            os.path.join(f"dataset/images/{split}", out_name),
+            img
+        )
+
+        # Label einfach kopieren
+        if os.path.exists(label_path):
+            with open(label_path, "r") as src, open(
+                os.path.join(f"dataset/labels/{split}", f"synth_{i}.txt"), "w"
+            ) as dst:
+                dst.write(src.read())
+        else:
+            # optional: leeres Label
+            open(
+                os.path.join(f"dataset/labels/{split}", f"synth_{i}.txt"), "w"
+            ).close()
+
+        continue  # wichtig! -> nächste Iteration
+
+    # -------------------------
+    # GENERATION (dein Code)
+    # -------------------------
     print(f"Generiere Bild {i+1}/{NUM_GENERATED_IMAGES}...")
     put_object_on_image = False
     if random.random() < BG_DISTRIBUTION["target_context"]:
@@ -584,9 +677,7 @@ for i in range(NUM_GENERATED_IMAGES):
             else:
                 print(f"Bild {i}: Kein Platz für ein weiteres Objekt gefunden.")
 
-    # Speichern
-    split = choose_split()
-    out_name = f"synth_{i}.jpg"
+
 
     # Vor dem Speichern: Bild auf Zielauflösung bringen
     bg_final = resize_and_center_crop(bg, TARGET_W, TARGET_H)

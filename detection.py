@@ -6,7 +6,8 @@ import numpy as np
 import time
 from pathlib import Path
 OUT_IMG = "dataset/images/test"
-OUT_IMG = "debug_images"
+PRED_IMG = "dataset/images/predictions"
+os.makedirs(PRED_IMG, exist_ok=True)
 
 """
 IMG = Path("dataset/images/train/synth_0.jpg")   # eine deiner Dateien
@@ -171,7 +172,7 @@ class ObjDetection:
             # Detektion anzeigen
             #cv2.imshow("Orginal", color_image)
             #cv2.imshow("Detektion", annotated_color_image)
-            cv2.imwrite(os.path.join(OUT_IMG, f"pred_{out_name}"), annotated_color_image)
+            cv2.imwrite(os.path.join(PRED_IMG, f"pred_{out_name}"), annotated_color_image)
             
 
             # Beenden mit 'q'
