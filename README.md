@@ -35,6 +35,7 @@ To use your own YOLO model, add it to the workspace-level `model/` folder.
 currently available YOLO models: 
 - `model/tennisball_600_seg_yolo11_v02.pt`
 - `model/yolo11_jute_stripe_yellow_paper-seg.pt`
+- `model/yolo11_jute_stripe_yellow_paper_02-seg.pt`
 - `model/yolo11n-seg.pt`
 
 
