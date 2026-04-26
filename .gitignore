@@ -1,3 +1,10 @@
+mask_rcnn_final_3.pth
+mask_rcnn_final_2.pth
+mask_rcnn_final.pth
+.venv311
+.venv
+imageset
+__pycache__
 # Python
 __pycache__/
 *.py[cod]
