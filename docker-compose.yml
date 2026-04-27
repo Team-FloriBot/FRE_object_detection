@@ -45,7 +45,7 @@ services:
     profiles: ["train-jetson"]
     build:
       context: .
-      dockerfile: training/Dockerfile.train.jetson
+      dockerfile: training/Dockerfile.jetson
     container_name: yolo_trainer_jetson
     runtime: nvidia
     shm_size: '8gb'
@@ -55,6 +55,35 @@ services:
       - ./training:/usr/src/app/training
       - ./runs:/usr/src/app/runs
     command: ["python3", "training/train.py"]
+
+  # --- YOLO EXPORTER ---
+  yolo-exporter:
+    profiles: ["export-pc"]
+    build:
+      context: .
+      dockerfile: training/Dockerfile
+    container_name: yolo_exporter_pc
+    volumes:
+      - ./model:/model
+      - ./training:/usr/src/app/training
+    environment:
+      - MODEL_PATH=/model/yolo26n_jute_stripe_yellow_paper_02-seg.pt
+    command: ["python3", "training/export.py"]
+    gpus: all
+
+  yolo-exporter-jetson:
+    profiles: ["export-jetson"]
+    build:
+      context: .
+      dockerfile: training/Dockerfile.jetson
+    container_name: yolo_exporter_jetson
+    runtime: nvidia
+    volumes:
+      - ./model:/model
+      - ./training:/usr/src/app/training
+    environment:
+      - MODEL_PATH=/model/yolo26n_jute_stripe_yellow_paper_02-seg.pt
+    command: ["python3", "training/export.py"]
 
   # --- YOLO DETECTOR ---
   yolo-detector:

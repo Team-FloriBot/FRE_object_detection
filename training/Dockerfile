@@ -12,7 +12,7 @@ COPY training/train.py ./training/train.py
 
 # Installiere zusätzliche Python-Pakete falls nötig 
 # (ultralytics ist bereits installiert)
-RUN pip install --no-cache-dir numpy opencv-python pyyaml
+RUN pip install --no-cache-dir numpy opencv-python pyyaml onnx onnxslim onnxruntime-gpu
 
 # Befehl beim Start des Containers
 CMD ["python3", "training/train.py"]

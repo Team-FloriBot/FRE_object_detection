@@ -38,8 +38,17 @@ class ObjDetection:
         self.H=480
         self.mode = mode
 
-        # Initialize a YOLOE model
-        self.model = YOLO("/model/yolo26n_jute_stripe_yellow_paper_02-seg.pt")
+        # Initialize a YOLO model (Prefer TensorRT engine if available)
+        model_pt = "/model/yolo26n_jute_stripe_yellow_paper_02-seg.pt"
+        device_suffix = os.getenv("DEVICE_SUFFIX", "") # e.g. "_pc" or "_jetson"
+        model_engine = f"/model/yolo26n_jute_stripe_yellow_paper_02-seg{device_suffix}.engine"
+        
+        if os.path.exists(model_engine):
+            print(f"Loading TensorRT engine: {model_engine}")
+            self.model = YOLO(model_engine, task="segment")
+        else:
+            print(f"Loading PyTorch model: {model_pt}")
+            self.model = YOLO(model_pt)
         # Save classes to detect
         self.classes = classes
         self.class_ids = [id for id in self.model.names if self.model.names[id] in classes]
