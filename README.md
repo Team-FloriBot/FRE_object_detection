@@ -7,7 +7,10 @@ git clone https://github.com/astark146/crv_fieldrobotevent.git
 
 Build the docker container, takes some time
 ```bash
-docker compose build
+docker compose --profile pc build
+```
+```bash
+docker compose --profile jetson build
 ```
 
 You need the ros2_detection_interfaces package in your client workspace. So copy it, when your client is elsewhere.
@@ -43,7 +46,10 @@ currently available YOLO models:
 
 Start the docker container to launch the detector_node.
 ```bash
-docker compose up -d
+docker compose --profile pc up
+```
+```bash
+docker compose --profile jetson up
 ```
 
 Start the example detector_client in this workspace:
