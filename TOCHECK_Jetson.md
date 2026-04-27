@@ -1,3 +1,8 @@
+TensorRT für Jetson
+--> faster
+
+
+
 Entsprechendes Image für ROS
 
 NVIDIA L4T ROS2 Humble Image

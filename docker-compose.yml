@@ -1,21 +1,23 @@
 services:
+  # --- PROFIL: PC (x86_64) ---
   detector:
+    profiles: ["pc"]
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: ros2_detector
+    container_name: ros2_detector_pc
     gpus: all
     environment:
       - ROS_DOMAIN_ID=0
       - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video
+      - DISPLAY=host.docker.internal:0.0 # Falls du GUI/X11 nutzt
     networks:
       - ros2_network
-    # For direct RealSense camera access (without ROS wrapper)
     privileged: true
     devices:
-      - /dev/bus/usb:/dev/bus/usb
+      - "/dev/bus/usb:/dev/bus/usb"
     volumes:
       - /dev:/dev
       - ./debug_images:/root/ros2_ws/debug_images
@@ -23,6 +25,35 @@ services:
       bash -c "source /opt/ros/humble/setup.bash && source /root/ros2_ws/install/setup.bash && ros2 run ros2_detection detector_node"
     stdin_open: true
     tty: true
+
+  # --- PROFIL: JETSON (ARM64) ---
+  detector-jetson:
+    profiles: ["jetson"]
+    build:
+      context: .
+      dockerfile: Dockerfile.jetson
+    container_name: ros2_detector_jetson
+    # Der Jetson nutzt oft die NVIDIA-Runtime direkt
+    runtime: nvidia 
+    environment:
+      - ROS_DOMAIN_ID=0
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    networks:
+      - ros2_network
+    privileged: true
+    devices:
+      - "/dev/bus/usb:/dev/bus/usb"
+      - "/dev/video0:/dev/video0" # Oft nötig für RealSense/CSI auf Jetson
+    volumes:
+      - /dev:/dev
+      - ./debug_images:/root/ros2_ws/debug_images
+    command: 
+      bash -c "source /opt/ros/humble/setup.bash && source /root/ros2_ws/install/setup.bash && ros2 run ros2_detection detector_node"
+    stdin_open: true
+    tty: true
+
 
 networks:
   ros2_network:

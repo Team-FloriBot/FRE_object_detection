@@ -1,0 +1,55 @@
+# Nutze das spezifische Ultralytics Image für JetPack 5
+FROM ultralytics/ultralytics:latest-jetson-jetpack5
+
+# Arbeitsverzeichnis
+WORKDIR /root/ros2_ws
+
+# 1. ROS 2 Humble Installation
+# Wir müssen die ROS2 Repositories hinzufügen, da das Ultralytics Image sie nicht hat
+RUN apt-get update && apt-get install -y locales && \
+    locale-gen en_US en_US.UTF-8 && \
+    update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+ENV LANG=en_US.UTF-8
+
+RUN apt-get update && apt-get install -y software-properties-common curl gnupg2 lsb-release && \
+    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null
+
+# Installiere ROS 2 Kern-Komponenten und Kamera-Support
+# Wir nutzen ros-humble-ros-base (schlank), da Ultralytics schon viel mitbringt
+RUN apt-get update && apt-get install -y \
+    ros-humble-ros-base \
+    ros-humble-cv-bridge \
+    ros-humble-vision-opencv \
+    ros-humble-realsense2-camera-msgs \
+    python3-colcon-common-extensions \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. Zusätzliche Python-Pakete
+# Pyrealsense2 ist auf dem Jetson oft knifflig, das Ultralytics Image 
+# hilft uns hier aber meistens mit den richtigen Treibern.
+RUN pip install --no-cache-dir \
+    scikit-learn \
+    pyrealsense2 \
+    "numpy<2.0"
+
+# 3. Projekt-Dateien einbinden
+RUN mkdir -p /root/ros2_ws/src
+COPY ros2_detection /root/ros2_ws/src/ros2_detection
+COPY ros2_detection_interfaces /root/ros2_ws/src/ros2_detection_interfaces
+COPY ros2_detection_client /root/ros2_ws/src/ros2_detection_client
+COPY model /root/ros2_ws/model
+
+# Workspace bauen
+RUN . /opt/ros/humble/setup.sh && \
+    colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+
+# 4. Environment & Entrypoint
+ENV ROS_DOMAIN_ID=0
+ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc && \
+    echo "source /root/ros2_ws/install/setup.bash" >> ~/.bashrc
+
+# Wichtig für den AGX Xavier: Die GPU-Power freischalten
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=all
