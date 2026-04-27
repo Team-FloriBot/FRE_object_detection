@@ -1,22 +1,37 @@
 services:
+  # --- SYNTHETIC GENERATOR ---
   synthetic-generator:
-    profiles: ["gen"] # Gehört zum Profil 'gen'
+    profiles: ["gen-pc"]
     build:
       context: .
       dockerfile: generate_synthetic/Dockerfile
-    container_name: synthetic_generator
+    container_name: synthetic_generator_pc
     volumes:
       - ./object_images:/app/object_images
       - ./backgrounds:/app/backgrounds
       - ./dataset:/app/dataset
     command: ["python3", "generate_synthetic.py"]
 
+  synthetic-generator-jetson:
+    profiles: ["gen-jetson"]
+    build:
+      context: .
+      dockerfile: generate_synthetic/Dockerfile.jetson
+    container_name: synthetic_generator_jetson
+    runtime: nvidia 
+    volumes:
+      - ./object_images:/app/object_images
+      - ./backgrounds:/app/backgrounds
+      - ./dataset:/app/dataset
+    command: ["./run.sh"]
+
+  # --- YOLO TRAINER ---
   yolo-trainer:
-    profiles: ["train"] # Gehört zum Profil 'train'
+    profiles: ["train-pc"]
     build:
       context: .
       dockerfile: training/Dockerfile
-    container_name: yolo_trainer
+    container_name: yolo_trainer_pc
     volumes:
       - ./dataset:/usr/src/app/dataset
       - ./model:/usr/src/app/model
@@ -26,30 +41,52 @@ services:
     gpus: all
     shm_size: '8gb'
 
+  yolo-trainer-jetson:
+    profiles: ["train-jetson"]
+    build:
+      context: .
+      dockerfile: training/Dockerfile.train.jetson
+    container_name: yolo_trainer_jetson
+    runtime: nvidia
+    shm_size: '8gb'
+    volumes:
+      - ./dataset:/usr/src/app/dataset
+      - ./model:/usr/src/app/model
+      - ./training:/usr/src/app/training
+      - ./runs:/usr/src/app/runs
+    command: ["python3", "training/train.py"]
+
+  # --- YOLO DETECTOR ---
   yolo-detector:
-      profiles: ["detect"]
-      build:
-        context: .
-        dockerfile: detection/Dockerfile
-      container_name: yolo_detector
-      environment:
+    profiles: ["detect-pc"]
+    build:
+      context: .
+      dockerfile: detection/Dockerfile
+    container_name: yolo_detector_pc
+    environment:
       - DISPLAY=host.docker.internal:0.0
-      volumes:
-        - ./dataset:/usr/src/app/dataset
-        - .:/usr/src/app
-        - ./model:/model
-        - ./runs:/usr/src/app/runs
-      command: ["python3", "detection/detection.py"]
-      # --- RealSense & Hardware Zugriff --- 
-      privileged: true  # Erleichtert den Zugriff auf USB-Busse erheblich
-      devices:
-        - "/dev/bus/usb:/dev/bus/usb" # Reicht den USB-Bus durch
-      # ------------------------------------
-      deploy:
-        resources:
-          reservations:
-            devices:
-              - driver: nvidia
-                count: all
-                capabilities: [gpu]
-      shm_size: '8gb'
+    privileged: true
+    devices:
+      - "/dev/bus/usb:/dev/bus/usb"
+    volumes:
+      - ./dataset:/usr/src/app/dataset
+      - .:/usr/src/app
+      - ./model:/model
+      - ./runs:/usr/src/app/runs
+
+  yolo-detector-jetson:
+    profiles: ["detect-jetson"]
+    build:
+      context: .
+      dockerfile: detection/Dockerfile.jetson
+    container_name: yolo_detector_jetson
+    runtime: nvidia
+    privileged: true
+    devices:
+      - "/dev/bus/usb:/dev/bus/usb"
+    volumes:
+      - /dev:/dev
+      - ./dataset:/usr/src/app/dataset
+      - .:/usr/src/app
+      - ./model:/model
+      - ./runs:/usr/src/app/runs

@@ -1,0 +1,26 @@
+# Nutze das offizielle Ultralytics Image für JetPack 5 (ARM64)
+FROM ultralytics/ultralytics:latest-jetson-jetpack5
+
+# Arbeitsverzeichnis
+WORKDIR /usr/src/app
+
+# System-Abhängigkeiten für RealSense und OpenCV
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    libusb-1.0-0 \
+    udev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Installiere Python-Pakete
+# Hinweis: OpenCV und PyTorch sind im Basis-Image bereits GPU-beschleunigt vorinstalliert!
+RUN pip install --no-cache-dir \
+    pyrealsense2 \
+    pyyaml \
+    "numpy<2.0"
+
+# Skript kopieren (Achte auf den Pfad in deinem Repo)
+COPY detection/detection.py ./detection/detection.py
+
+# Befehl beim Start
+CMD ["python3", "detection/detection.py"]

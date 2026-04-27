@@ -1,0 +1,30 @@
+# Wir nutzen ein L4T-Basis Image mit Python 3.10 Support
+FROM nvcr.io/nvidia/l4t-ml:r35.2.1-py3
+
+# System-Abhängigkeiten (libgl1 und glib sind hier oft schon drin, aber zur Sicherheit)
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Requirements installieren
+COPY requirements.txt .
+# HINWEIS: Wir überspringen torch/torchvision in den requirements, 
+# da sie im l4t-ml Image bereits vorinstalliert und optimiert sind!
+RUN pip install --no-cache-dir $(grep -ivE "torch|torchvision" requirements.txt)
+
+# Script und Ordner wie gehabt
+COPY generate_synthetic/generate_synthetic.py ./generate_synthetic.py
+
+RUN mkdir -p object_images/train/images \
+    && mkdir -p object_images/train/labels \
+    && mkdir -p backgrounds \
+    && mkdir -p dataset/images \
+    && mkdir -p dataset/labels
+
+COPY generate_synthetic/run.sh ./run.sh
+RUN chmod +x run.sh
+
+CMD ["./run.sh"]

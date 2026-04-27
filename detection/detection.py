@@ -39,7 +39,7 @@ class ObjDetection:
         self.mode = mode
 
         # Initialize a YOLOE model
-        self.model = YOLO("/model/yolo26n_jute_stripe_yellow_paper-seg.pt")
+        self.model = YOLO("/model/yolo26n_jute_stripe_yellow_paper_02-seg.pt")
         # Save classes to detect
         self.classes = classes
         self.class_ids = [id for id in self.model.names if self.model.names[id] in classes]
@@ -212,9 +212,11 @@ class ObjDetection:
                 # Beenden mit 'q'
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
+
+            self.stop_camera()
         
-        self.stop_camera()
+        
 
 if __name__ == "__main__":
-    person_detection = ObjDetection(["jute-stripe","yellow-paper"], mode="camera")
+    person_detection = ObjDetection(["jute-stripe","yellow-paper"], mode="test")
     person_detection.run()

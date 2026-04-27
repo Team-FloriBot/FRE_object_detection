@@ -1,0 +1,21 @@
+# Nutze das offizielle Ultralytics Jetson Image (optimiert für AGX Xavier / JP 5.1)
+FROM ultralytics/ultralytics:latest-jetson-jetpack5
+
+# Arbeitsverzeichnis
+WORKDIR /usr/src/app
+
+# System-Abhängigkeiten (im Jetson-Image meist schon perfekt drin)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Trainingsskript kopieren
+COPY training/train.py ./training/train.py
+
+# Installiere zusätzliche Pakete
+# HINWEIS: torch und torchvision NICHT via pip installieren, sind im Image enthalten!
+RUN pip install --no-cache-dir pyyaml "numpy<2.0"
+
+# Befehl beim Start
+CMD ["python3", "training/train.py"]
