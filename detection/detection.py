@@ -2,7 +2,7 @@ from ultralytics import YOLO
 import cv2
 import os
 import numpy as np
-#import pyrealsense2 as rs
+import pyrealsense2 as rs
 import time
 from pathlib import Path
 OUT_IMG = "dataset/images/test"
@@ -33,9 +33,10 @@ cv2.waitKey(0)"""
 
 
 class ObjDetection:
-    def __init__(self, classes):
+    def __init__(self, classes, mode="test"):
         self.W=640
         self.H=480
+        self.mode = mode
 
         # Initialize a YOLOE model
         self.model = YOLO("/model/yolo26n_jute_stripe_yellow_paper-seg.pt")
@@ -45,13 +46,20 @@ class ObjDetection:
 
         # Initialize webcam
         #self.cap = cv2.VideoCapture(0)
+        if self.mode != "test":
+            self.initialize_realsense()
 
     # ---------------------------------------------------------
     # RealSense Setup
     # ---------------------------------------------------------
     def initialize_realsense(self):
         # init realsense
-        pass
+
+        self.rs_pipeline = rs.pipeline()
+        self.rs_config = rs.config()
+        self.rs_config.enable_stream(rs.stream.depth, self.W, self.H, rs.format.z16, 30)
+        self.rs_config.enable_stream(rs.stream.color, self.W, self.H, rs.format.bgr8, 30)
+        self.rs_pipeline.start(self.rs_config)
 
 
     # ---------------------------------------------------------
@@ -65,13 +73,20 @@ class ObjDetection:
         
         # --> replace that with rs
         #ret, color_image = self.cap.read()
-        color_image = cv2.imread(os.path.join(OUT_IMG, out_name))
-        
+        if self.mode != "test":
+            frames = self.rs_pipeline.wait_for_frames()
+            color_frame = frames.get_color_frame()
+            depth_frame = frames.get_depth_frame()
 
+            if not color_frame or not depth_frame:
+                return None, None
 
-        # --> replace that with rs
-        #color_image = cv2.resize(color_image, (self.W, self.H))
-        depth_image = None
+            color_image = np.asanyarray(color_frame.get_data())
+            depth_image = np.asanyarray(depth_frame.get_data())
+        else:
+            color_image = cv2.imread(os.path.join(OUT_IMG, out_name))
+            depth_image = None
+
         return color_image, depth_image
 
 
@@ -153,34 +168,53 @@ class ObjDetection:
     # Stop Camera
     # ---------------------------------------------------------
     def stop_camera(self):
+        rs.pipeline().stop()
         #self.cap.release()
-        #cv2.destroyAllWindows()
+        cv2.destroyAllWindows()
         pass
 
     def run(self):
-        for out_name in os.listdir(OUT_IMG):
-            # Kamerabild lesen
-            color_image, depth_image = self.get_frame(out_name)
+        if self.mode == "test":
+            for out_name in os.listdir(OUT_IMG):
+                # Kamerabild lesen
+                color_image, depth_image = self.get_frame(out_name)
 
-            # Objekte detektieren
-            frame_masks, annotated_color_image = self.detect_obj(color_image)
+                # Objekte detektieren
+                frame_masks, annotated_color_image = self.detect_obj(color_image)
 
-            # RGB- und Tiefenbild fussionieren
-            #coordinates = self.fuse(color_image, depth_image, frame_masks)
-            # Objekt-Koordinaten berechnen
+                # RGB- und Tiefenbild fussionieren
+                #coordinates = self.fuse(color_image, depth_image, frame_masks)
+                # Objekt-Koordinaten berechnen
 
-            # Detektion anzeigen
-            #cv2.imshow("Orginal", color_image)
-            #cv2.imshow("Detektion", annotated_color_image)
-            cv2.imwrite(os.path.join(PRED_IMG, f"pred_{out_name}"), annotated_color_image)
-            
+                # Detektion anzeigen
+                #cv2.imshow("Orginal", color_image)
+                #cv2.imshow("Detektion", annotated_color_image)
+                cv2.imwrite(os.path.join(PRED_IMG, f"pred_{out_name}"), annotated_color_image)
 
-            # Beenden mit 'q'
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+                # Beenden mit 'q'
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+        else:
+            while True:
+                # Kamerabild lesen
+                color_image, depth_image = self.get_frame(None)
+
+                # Objekte detektieren
+                frame_masks, annotated_color_image = self.detect_obj(color_image)
+
+                # RGB- und Tiefenbild fussionieren
+                #coordinates = self.fuse(color_image, depth_image, frame_masks)
+                # Objekt-Koordinaten berechnen
+
+                # Detektion anzeigen
+                cv2.imshow("Detektion", annotated_color_image)
+
+                # Beenden mit 'q'
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
         
         self.stop_camera()
 
 if __name__ == "__main__":
-    person_detection = ObjDetection(["jute-stripe","yellow-paper"])
+    person_detection = ObjDetection(["jute-stripe","yellow-paper"], mode="camera")
     person_detection.run()
