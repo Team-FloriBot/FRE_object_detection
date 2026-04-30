@@ -22,15 +22,6 @@ You need the ros2_detection_interfaces package in your client workspace. So copy
 
 The ROS2 detector node wraps the package-local detection implementation. The package can use a yolo model to detect and localize objects. 
 
-#### Jazzy Update
-Der `ros2_detection_client` wurde auf **ROS 2 Jazzy** aktualisiert. Die Detektions-Node (`ros2_detection`) verbleibt auf **ROS 2 Humble**, um Kompatibilität mit spezifischen Bibliotheken (z.B. Jetson-Umgebungen) zu gewährleisten.
-
-**Mixed Distribution Setup:**
-1. Starte Humble-Detektor: `docker compose --profile pc up`
-2. Starte Jazzy-Client: `docker compose --profile jazzy up`
-
-Beide Container nutzen `RMW_IMPLEMENTATION=rmw_fastrtps_cpp` und dieselbe `ROS_DOMAIN_ID` für die Kommunikation.
-
 The detector node control is service-based and publishes the camera results. See the README-file and detector_client node to get further informations about how to use the detector_node.
 detector_client is an example implementation which shows the basic usage with the following services and topics.
 
