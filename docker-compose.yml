@@ -54,6 +54,23 @@ services:
     stdin_open: true
     tty: true
 
+  # --- PROFIL: JAZZY CLIENT (x86_64) ---
+  detector-client-jazzy:
+    profiles: ["jazzy"]
+    build:
+      context: .
+      dockerfile: Dockerfile.client_jazzy
+    container_name: ros2_detector_client_jazzy
+    environment:
+      - ROS_DOMAIN_ID=0
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+    networks:
+      - ros2_network
+    command: 
+      bash -c "source /opt/ros/jazzy/setup.bash && source /root/ros2_ws/install/setup.bash && ros2 run ros2_detection_client detector_client run"
+    stdin_open: true
+    tty: true
+
 
 networks:
   ros2_network:
