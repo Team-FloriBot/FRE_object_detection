@@ -12,7 +12,7 @@ docker compose --profile pc build
 docker compose --profile jetson build
 
 # Jazzy Client
-docker compose --profile jazzy build
+docker compose --profile client build
 ```
 
 You need the ros2_detection_interfaces package in your client workspace. So copy it, when your client is elsewhere.
@@ -57,11 +57,11 @@ docker compose --profile jetson up
 
 Start the example detector_client in this workspace (Jazzy):
 ```bash
-docker compose --profile jazzy up
+docker compose --profile client up
 ```
 Oder manuell im Jazzy-Container:
 ```bash
-docker compose exec -it detector-client-jazzy bash
+docker compose exec -it detector-client bash
 ros2 run ros2_detection_client detector_client run --model-path model/yolo26n_jute_stripe_yellow_paper_02-seg.pt --confidence 0.5 --duration 15 --use-realsense-ros-wrapper
 ```
 

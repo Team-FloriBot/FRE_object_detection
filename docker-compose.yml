@@ -53,8 +53,8 @@ services:
     tty: true
 
   # --- PROFIL: JAZZY CLIENT (x86_64) ---
-  detector-client-jazzy:
-    profiles: ["jazzy"]
+  detector-client:
+    profiles: ["client"]
     build:
       context: .
       dockerfile: Dockerfile.client_jazzy
