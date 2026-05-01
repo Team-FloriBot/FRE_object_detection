@@ -242,10 +242,9 @@ class ObjDetection:
             raise RuntimeError("RealSense pipeline not initialized. Call initialize_realsense() first.")
 
         if self.get_realsense_images is not None:
-            frames = self.get_realsense_images()
+            return self.get_realsense_images()
         else:   
-            frames = self.pipeline.wait_for_frames()
-        return frames
+            return self.pipeline.wait_for_frames()
 
     # ---------------------------------------------------------
     # Align Frames & Apply Filters

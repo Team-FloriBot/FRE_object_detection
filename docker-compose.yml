@@ -57,8 +57,8 @@ services:
     profiles: ["client"]
     build:
       context: .
-      dockerfile: Dockerfile.client_jazzy
-    container_name: ros2_detector_client_jazzy
+      dockerfile: Dockerfile.client
+    container_name: ros2_detector_client
     environment:
       - ROS_DOMAIN_ID=0
       - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
@@ -66,6 +66,22 @@ services:
       - ros2_network
     command: 
       bash -c "source /opt/ros/jazzy/setup.bash && source /root/ros2_ws/install/setup.bash && ros2 run ros2_detection_client detector_client run --model-path model/yolo26n_jute_stripe_yellow_paper-seg.pt --confidence 0.5 --duration 15"
+    stdin_open: true
+    tty: true
+
+  object-tracker:
+    profiles: ["tracker"]
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: ros2_object_tracker
+    environment:
+      - ROS_DOMAIN_ID=0
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+    networks:
+      - ros2_network
+    command: 
+      bash -c "source /opt/ros/jazzy/setup.bash && source /root/ros2_ws/install/setup.bash && ros2 run ros2_detection_client object_tracker run"
     stdin_open: true
     tty: true
 

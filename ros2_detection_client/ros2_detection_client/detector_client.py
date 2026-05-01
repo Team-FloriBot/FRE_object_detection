@@ -6,18 +6,10 @@ from typing import Optional
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
+from ros2_detection_interfaces.msg import DetectionArray
 
 from ros2_detection_interfaces.srv import Init, Release, Start, Stop
 
-"""
-ros2 launch realsense2_camera rs_launch.py \ 
-enable_rgbd:=true \ 
-enable_sync:=true \
-align_depth.enable:=true \
-enable_color:=true \
-enable_depth:=true \
-color_module.profile:=640x480x30
-"""
 
 class DetectorClient(Node):
     def __init__(self) -> None:
@@ -30,7 +22,7 @@ class DetectorClient(Node):
 
         self.status_sub = self.create_subscription(String, "/detector/status", self._on_status, 10)
         self.model_info_sub = self.create_subscription(String, "/detector/model_info", self._on_model_info, 10)
-        self.results_sub = self.create_subscription(String, "/detector/results", self._on_results, 1)
+        self.results_sub = self.create_subscription(DetectionArray, "/detector/results", self._on_results, 2)
     def wait_for_services(self, timeout_sec: float = 10.0) -> bool:
         start = time.time()
         clients = [self.init_client, self.start_client, self.stop_client, self.release_client]
@@ -111,36 +103,39 @@ class DetectorClient(Node):
     def _on_model_info(self, msg: String) -> None:
         self.get_logger().info(f"MODEL_INFO: {msg.data}")
 
-    def _on_results(self, msg: String) -> None:
-        
-        try:
-            payload = json.loads(msg.data)
-        except json.JSONDecodeError:
-            print(f"RESULTS(raw): {msg.data}")
-            return
+    def _on_results(self, msg: DetectionArray) -> None:
 
-        num = payload.get("num_detections", "?")
-        detections = payload.get("detections", [])
+        # Header aus ROS Message
+        timestamp = msg.header.stamp
+        frame_id = msg.header.frame_id
+
+        num = len(msg.detections)
         print("#" * 40)
         print(f"RESULTS: num_detections={num}")
 
-        for idx, det in enumerate(detections, start=1):
-            label = det.get("class", "?")
-            conf = det.get("confidence", None)
-            median_xyz = det.get("median_xyz", None)
-            object_center = det.get("object_center", None)
 
-            conf_str = f"{float(conf):.3f}" if isinstance(conf, (int, float)) else "n/a"
+        for idx, det in enumerate(msg.detections, start=1):
 
-            if isinstance(median_xyz, list) and len(median_xyz) == 3:
+            label = det.label
+            conf = det.confidence
+
+            median_xyz = det.median_xyz
+            object_center = det.object_center
+
+            conf_str = f"{float(conf):.3f}" if conf is not None else "n/a"
+
+            if median_xyz is not None and object_center is not None:
+
                 print(
-                    f"  - #{idx} class={label} conf={conf_str} m_x={median_xyz[0]:.3f} m_y={median_xyz[1]:.3f} m_z={median_xyz[2]:.3f} c_x={object_center[0]:.3f} c_y={object_center[1]:.3f} c_z={object_center[2]:.3f}"
+                    f"  - #{idx} class={label} conf={conf_str} "
+                    f"m_x={median_xyz.x:.3f} m_y={median_xyz.y:.3f} m_z={median_xyz.z:.3f} "
+                    f"c_x={object_center.x:.3f} c_y={object_center.y:.3f} c_z={object_center.z:.3f}"
                 )
+
             else:
                 print(
                     f"  - #{idx} class={label} conf={conf_str} x=n/a y=n/a z=n/a"
                 )
-                pass
 
 
 def main() -> None:

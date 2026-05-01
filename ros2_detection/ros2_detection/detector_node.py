@@ -7,10 +7,13 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from ros2_detection_interfaces.srv import Init, Release, Start, Stop
+from rclpy.clock import Clock
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 from cv_bridge import CvBridge
 from realsense2_camera_msgs.msg import RGBD
+from ros2_detection_interfaces.msg import Detection, DetectionArray
+from geometry_msgs.msg import Point
 import cv2
 
 from .detection_model_selection import ObjDetection
@@ -43,9 +46,11 @@ class DetectionNode(Node):
 
         # Publishers for monitoring
         self.model_info_pub = self.create_publisher(String, "/detector/model_info", 10)
-        self.results_pub = self.create_publisher(String, "/detector/results", 10)
+        self.results_pub = self.create_publisher(DetectionArray, "/detector/results", 10)
         self.status_pub = self.create_publisher(String, "/detector/status", 10)
         self.annotated_img_pub = self.create_publisher(Image, "/detector/annotated_image", 10)
+  
+        self.last_frame_id = "camera_color_optical_frame"
 
         # Services for control
         self.init_service = self.create_service(
@@ -90,10 +95,12 @@ class DetectionNode(Node):
         self.depth_img = self.bridge.imgmsg_to_cv2(msg.depth, "passthrough")
         self.depth_camera_info = getattr(msg, "depth_camera_info", None)
 
-        print("RGBD:", self.color_img.shape, self.depth_img.shape)
+        self.last_stamp = msg.rgb.header.stamp
+        self.last_frame_id = msg.rgb.header.frame_id
 
+     # Ensure color image is not modified by OpenCV operations
     def get_realsense_images(self):
-        return self.color_img, self.depth_img
+        return self.color_img.copy(), self.depth_img.copy(), self.last_frame_id, self.last_stamp
 
     def _handle_init(self, request, response) -> None:
         """Initialize detector with given configuration."""
@@ -174,7 +181,7 @@ class DetectionNode(Node):
             return response
 
     def _handle_start(self, request, response) -> None:
-        """Start adaptive detection loop."""
+        """Start detection loop."""
         if self.detector is None:
             response.success = False
             response.message = "Detector not initialized. Call /detector/init first."
@@ -185,15 +192,14 @@ class DetectionNode(Node):
             response.message = "Detector already running."
             return response
 
-        self.detector_running = True
-
-        # Use adaptive scheduling: each cycle waits only for the remaining
-        # time after the last inference step finished.
+        # Use fixed period for now to avoid frequent timer destruction/creation
         fps = int(self.current_config.get("camera", {}).get("fps", 30))
         if fps <= 0:
             fps = 30
         self.detection_period_sec = 1.0 / fps  # seconds
-        self._schedule_next_detection(0.0)
+        
+        self.detector_running = True
+        self.loop_timer = self.create_timer(self.detection_period_sec, self._detection_loop)
 
         response.success = True
         response.message = f"Detector started at {fps} FPS."
@@ -221,21 +227,15 @@ class DetectionNode(Node):
         return response
 
     def _detection_loop(self) -> None:
-        """Run one detection cycle and schedule the next one adaptively."""
+        """Run one detection cycle."""
         if self.detector is None or not self.detector_running:
             return
 
-        cycle_start = time.monotonic()
         try:
-            current_timer = self.loop_timer
-            self.loop_timer = None
-            if current_timer is not None:
-                current_timer.cancel()
-                self.destroy_timer(current_timer)
-
-            frames = self.detector.get_frame()
+            color_image, depth_image, frame_id, timestamp = None, None, None, None
+            
             if self.detector.get_realsense_images is not None:
-                color_image, depth_image = frames
+                color_image, depth_image, frame_id, timestamp = self.detector.get_frame()
 
                 # ROS wrapper can briefly return no images at startup.
                 if color_image is None or depth_image is None:
@@ -254,6 +254,9 @@ class DetectionNode(Node):
 
                 self._update_detector_intrinsics_from_camera_info()
             else:
+                frames = self.detector.get_frame()
+                frame_id = self.last_frame_id
+                timestamp = Clock().now().to_msg()
                 aligned_frames = self.detector.align_frames(frames)
                 color_image, depth_image = self.detector.depth_filter(aligned_frames)
 
@@ -272,31 +275,32 @@ class DetectionNode(Node):
             fused_objs_data, _ = self.detector.fuse(color_image, depth_image, objs_data)
 
             detections = []
+            msg = DetectionArray()
+
+            msg.header.stamp = timestamp
+            msg.header.frame_id = frame_id
+
+            msg.ok = True
+            msg.searched_classes = self.detector.classes
+
+            msg.model = json.dumps(self.detector.get_model_info())
+
             for obj_id, data in fused_objs_data.items():
-                label = data.get("class")
-                confidence = data.get("confidence", None)
-                median_xyz = data.get("median_xyz", None)
-                object_center = data.get("object_center", None)
+                det = Detection()
 
-                entry = {
-                    "id": obj_id,
-                    "class": label,
-                    "confidence": confidence,
-                    "median_xyz": median_xyz,
-                    "object_center": object_center,
-                }
+                det.id = str(obj_id)
+                det.label = data.get("class", "")
+                det.confidence = float(data.get("confidence", 0.0))
 
-                detections.append(entry)
+                mx, my, mz = data.get("median_xyz", [0,0,0])
+                det.median_xyz = Point(x=mx, y=my, z=mz)
 
-       
-            result_payload = {
-                "ok": True,
-                "searched_classes": self.detector.classes,
-                "model": self.detector.get_model_info(),
-                "num_detections": len(detections),
-                "detections": detections,
-            }
-            self.results_pub.publish(String(data=json.dumps(result_payload)))
+                ox, oy, oz = data.get("object_center", [0,0,0])
+                det.object_center = Point(x=ox, y=oy, z=oz)
+
+                msg.detections.append(det)
+
+            self.results_pub.publish(msg)
 
             # Publish annotated image
             if annotated_image is not None:
@@ -307,11 +311,6 @@ class DetectionNode(Node):
 
         except Exception as exc:
             self._publish_status("error", f"Detection loop error: {exc}")
-        finally:
-            if self.detector_running and self.detector is not None:
-                elapsed_sec = time.monotonic() - cycle_start
-                remaining_sec = max(0.0, self.detection_period_sec - elapsed_sec)
-                self._schedule_next_detection(remaining_sec)
 
     def _update_detector_intrinsics_from_camera_info(self) -> None:
         """Update detector intrinsics from RGBD camera info when using ROS wrapper frames."""
@@ -333,16 +332,7 @@ class DetectionNode(Node):
             self.detector.cx = cx
             self.detector.cy = cy
 
-    def _schedule_next_detection(self, delay_sec: float) -> None:
-        """Schedule the next detection cycle after the requested delay."""
-        if self.detector is None or not self.detector_running:
-            return
-
-        if self.loop_timer is not None:
-            self.destroy_timer(self.loop_timer)
-            self.loop_timer = None
-
-        self.loop_timer = self.create_timer(max(0.0, float(delay_sec)), self._detection_loop)
+    # Removed _schedule_next_detection to use periodic timer instead
 
     def _release_detector(self) -> None:
         """Cleanup detector and timer."""

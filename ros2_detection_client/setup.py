@@ -23,6 +23,7 @@ setup(
     entry_points={
         'console_scripts': [
             'detector_client = ros2_detection_client.detector_client:main',
+            'object_tracker = ros2_detection_client.object_tracker:main',
         ],
     },
 )
