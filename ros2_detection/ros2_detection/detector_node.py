@@ -7,6 +7,7 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from ros2_detection_interfaces.srv import Init, Release, Start, Stop
+from sensor_msgs.msg import Image
 from std_msgs.msg import String
 from cv_bridge import CvBridge
 from realsense2_camera_msgs.msg import RGBD
@@ -44,6 +45,7 @@ class DetectionNode(Node):
         self.model_info_pub = self.create_publisher(String, "/detector/model_info", 10)
         self.results_pub = self.create_publisher(String, "/detector/results", 10)
         self.status_pub = self.create_publisher(String, "/detector/status", 10)
+        self.annotated_img_pub = self.create_publisher(Image, "/detector/annotated_image", 10)
 
         # Services for control
         self.init_service = self.create_service(
@@ -67,9 +69,6 @@ class DetectionNode(Node):
             self._handle_release,
         )
 
-        self.detections_counter = 0
-        self.debug_image_dir = os.environ.get("DETECTION_DEBUG_DIR", "/root/ros2_ws/debug_images")
-        os.makedirs(self.debug_image_dir, exist_ok=True)
 
         self.bridge = CvBridge()
         self.color_img = None
@@ -289,12 +288,7 @@ class DetectionNode(Node):
 
                 detections.append(entry)
 
-            if detections:
-                self.detections_counter += 1
-            if self.detections_counter <= 5:
-                cv2.imwrite(os.path.join(self.debug_image_dir, f"detection_before_debug{self.detections_counter}.jpg"), color_image)
-                cv2.imwrite(os.path.join(self.debug_image_dir, f"detection_debug{self.detections_counter}.jpg"), annotated_image)
-
+       
             result_payload = {
                 "ok": True,
                 "searched_classes": self.detector.classes,
@@ -303,6 +297,13 @@ class DetectionNode(Node):
                 "detections": detections,
             }
             self.results_pub.publish(String(data=json.dumps(result_payload)))
+
+            # Publish annotated image
+            if annotated_image is not None:
+                img_msg = self.bridge.cv2_to_imgmsg(annotated_image, "bgr8")
+                img_msg.header.stamp = self.get_clock().now().to_msg()
+                img_msg.header.frame_id = "camera_color_optical_frame"
+                self.annotated_img_pub.publish(img_msg)
 
         except Exception as exc:
             self._publish_status("error", f"Detection loop error: {exc}")
