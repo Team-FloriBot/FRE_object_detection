@@ -41,7 +41,13 @@ object_images/use_like_is/*
 object_images/*.yaml
 object_images/*.txt
 
+object_images_task2/*
+object_images_task3/*
+
 dataset/*
+
+dataset_task2/*
+dataset_task3/*
 
 model/*
 

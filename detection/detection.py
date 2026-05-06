@@ -39,9 +39,9 @@ class ObjDetection:
         self.mode = mode
 
         # Initialize a YOLO model (Prefer TensorRT engine if available)
-        model_pt = "/model/yolo26n_jute_stripe_yellow_paper_02-seg.pt"
+        model_pt = "/model/yolo26n_bee_beetle_butterfly-seg.pt"
         device_suffix = os.getenv("DEVICE_SUFFIX", "") # e.g. "_pc" or "_jetson"
-        model_engine = f"/model/yolo26n_jute_stripe_yellow_paper_02-seg{device_suffix}.engine"
+        model_engine = f"/model/yolo26n_bee_beetle_butterfly-seg{device_suffix}.engine"
         
         if os.path.exists(model_engine):
             print(f"Loading TensorRT engine: {model_engine}")
@@ -108,7 +108,7 @@ class ObjDetection:
         results = self.model.predict(
             color_image,
             classes=self.class_ids,
-            conf=0.4,
+            conf=0.5,
             imgsz=640,
             rect=True,
         )
@@ -227,5 +227,5 @@ class ObjDetection:
         
 
 if __name__ == "__main__":
-    person_detection = ObjDetection(["jute-stripe","yellow-paper"], mode="test")
+    person_detection = ObjDetection(["bee", "beetle", "butterfly"], mode="camera")
     person_detection.run()

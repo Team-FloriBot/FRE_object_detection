@@ -1,21 +1,41 @@
 from pathlib import Path
-from xml.parsers.expat import model
 
 import yaml
 from ultralytics import YOLO
 
 
 def _load_class_config(project_root: Path) -> tuple[int, list[str]]:
-    source_yaml = project_root / "object_images" / "data.yaml"
-    if source_yaml.exists():
-        data = yaml.safe_load(source_yaml.read_text(encoding="utf-8"))
+    candidate_files = [
+        project_root / "dataset" / "data.yaml",
+        project_root / "object_images" / "data.yaml",
+    ]
+
+    for source_yaml in candidate_files:
+        print("looking for class config in:", source_yaml)
+        if not source_yaml.exists():
+            continue
+
+        data = yaml.safe_load(source_yaml.read_text(encoding="utf-8")) or {}
         names = data.get("names", [])
+        print("loaded class config:", names)
+
         if isinstance(names, dict):
             names = [names[idx] for idx in sorted(names)]
+
         nc = int(data.get("nc", len(names)))
+        print(nc)
+
         if names and nc == len(names):
+            print(names)
             return nc, names
-    return 2, ["jute-stripe", "yellow-paper"]
+
+        raise ValueError(
+            f"Ungueltige Klassenkonfiguration in {source_yaml}: nc={nc}, names={names}"
+        )
+
+    raise FileNotFoundError(
+        "Keine gueltige class config gefunden (dataset/data.yaml oder object_images/data.yaml)."
+    )
 
 
 def _build_output_data_yaml(project_root: Path) -> Path:
@@ -28,17 +48,21 @@ def _build_output_data_yaml(project_root: Path) -> Path:
     nc, names = _load_class_config(project_root)
     data = {
         "path": str(output_dir.resolve()),
-        "train": "images",
-        "val": "images",
+        "train": "images/train",
+        "val": "images/val",
+        "test": "images/test",
         "nc": nc,
         "names": names,
     }
-    target_yaml = output_dir / "data.yaml"
+    target_yaml = output_dir / "train_data.yaml"
     target_yaml.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=False), encoding="utf-8")
+    print("using data yaml:", target_yaml)
+    print("data yaml content:")
+    print(target_yaml.read_text(encoding="utf-8"))
     return target_yaml
 
 
-def main() -> None:
+def main(name: str = "yolo26n_jutestripe_yellowpaper") -> None:
     project_root = Path(__file__).resolve().parents[1]
     runs_dir = project_root / "runs"
 
@@ -49,12 +73,12 @@ def main() -> None:
 
     model.train(
         data=str(data_yaml),
-        epochs=100,
+        epochs=100, #100
         imgsz=640,
         batch=16,
         device="0",
         project=str(runs_dir),
-        name="yolo26n_jute_stripe_yellow_paper_02",
+        name=name,
         exist_ok=True,
 
         # --- REALISTISCHE FARBE ---
@@ -86,11 +110,11 @@ def main() -> None:
     model.val(
         data=str(data_yaml),
         project=str(runs_dir),
-        name="yolo26n_jute_stripe_yellow_paper_02_val",
+        name=f"{name}_val",
         exist_ok=True,
     )
-    model.save(str(project_root / "model" / "yolo26n_jute_stripe_yellow_paper_02-seg.pt"))
+    model.save(str(project_root / "model" / f"{name}-seg.pt"))
 
 
 if __name__ == "__main__":
-    main()
+    main(name="yolo26n_jutestripe_yellowpaper")

@@ -1,6 +1,7 @@
 import cv2
 import os
 import random
+import shutil
 import numpy as np
 
 OBJECT_DIR = "object_images/objects_only"
@@ -22,10 +23,15 @@ VALID_EXT = (".jpg", ".jpeg", ".png", ".webp")
 
 def load_polygon_label(path):
     with open(path, "r") as f:
-        line = f.readline().strip().split()
-        cls = int(line[0])
-        coords = list(map(float, line[1:]))
-        polygon = np.array(coords).reshape(-1, 2)
+        lines = [line.strip().split() for line in f if line.strip()]
+
+    if not lines:
+        return None, None
+
+    line = random.choice(lines)
+    cls = int(line[0])
+    coords = list(map(float, line[1:]))
+    polygon = np.array(coords).reshape(-1, 2)
     return cls, polygon
 
 def polygon_to_mask(img_shape, polygon):
@@ -256,17 +262,28 @@ def random_place_no_overlap(bg, obj, mask, polygon, total_mask, max_tries=50):
     return 0, 0, 0, 0, poly, False
 
 
-    return 0, 0, 0, 0, poly, False
+    return 0, 0, 0, 0, poly, False 
 
 # --- CONFIGURATION ---
-NUM_GENERATED_IMAGES = 200       # Wie viele Bilder insgesamt erstellt werden sollen
+NUM_GENERATED_IMAGES = 200       # Wie viele Bilder insgesamt erstellt werden sollen  
 USE_LIKE_IS = 10
 OBJS_PER_IMAGE = (1, 6)         # Zufällige Anzahl (Min, Max) an Objekten pro Bild
-SCALE_RANGE = (0.4, 0.9)        # 20–80% der Hintergrundhöhe/Breite
+SCALE_RANGE = (0.2, 0.8)        # 20–80% der Hintergrundhöhe/Breite
 ROTATION_RANGE = (-20, 20)      # Drehung in Grad
 FLIP_PROB = 0.5                 # 50% Chance für horizontales Spiegeln
 BRIGHTNESS_RANGE = (0.7, 1.3)   # Helligkeits-Augmentation
 BLUR_PROB = 0.2                 # Chance für leichte Unschärfe
+
+"""task3
+NUM_GENERATED_IMAGES = 300       # Wie viele Bilder insgesamt erstellt werden sollen  
+USE_LIKE_IS = 10
+OBJS_PER_IMAGE = (1, 6)         # Zufällige Anzahl (Min, Max) an Objekten pro Bild
+SCALE_RANGE = (0.2, 0.8)        # 20–80% der Hintergrundhöhe/Breite
+ROTATION_RANGE = (-90, 90)      # Drehung in Grad
+FLIP_PROB = 0.5                 # 50% Chance für horizontales Spiegeln
+BRIGHTNESS_RANGE = (0.7, 1.3)   # Helligkeits-Augmentation
+BLUR_PROB = 0.2                 # Chance für leichte Unschärfe
+"""
 
 # --- OUTDOOR AUGMENTATION CONFIG ---
 MOTION_BLUR_PROB = 0.1
@@ -612,6 +629,9 @@ for i in range(NUM_GENERATED_IMAGES):
             h, w = img.shape[:2]
 
             cls, polygon_norm = load_polygon_label(label_path)
+            if cls is None or polygon_norm is None:
+                continue
+
             polygon = polygon_norm.copy()
             polygon[:, 0] *= w
             polygon[:, 1] *= h
@@ -698,3 +718,11 @@ for i in range(NUM_GENERATED_IMAGES):
 
     # Bild speichern
     cv2.imwrite(os.path.join(f"dataset/images/{split}", out_name), bg_final)
+
+source_data_yaml = os.path.join("object_images", "data.yaml")
+target_data_yaml = os.path.join("dataset", "data.yaml")
+if os.path.exists(source_data_yaml):
+    shutil.copy2(source_data_yaml, target_data_yaml)
+    print(f"Kopiert: {source_data_yaml} -> {target_data_yaml}")
+else:
+    print(f"Warnung: {source_data_yaml} nicht gefunden, dataset/data.yaml wurde nicht aktualisiert.")
