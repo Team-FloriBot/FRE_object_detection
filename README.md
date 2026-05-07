@@ -30,7 +30,7 @@ Control services (order):
 
 Monitoring topics:
 - `/detector/model_info` (`std_msgs/String`, JSON) 
-- `/detector/results` (`std_msgs/String`, JSON)
+- `/detector/results` (`ros2_detection_interfaces/DetectionArray`, JSON)
 - `/detector/status` (`std_msgs/String`, JSON)
 
 

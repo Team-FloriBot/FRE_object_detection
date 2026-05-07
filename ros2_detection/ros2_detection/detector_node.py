@@ -44,11 +44,64 @@ class DetectionNode(Node):
         self.detection_period_sec = 0.0
         self.current_config: Dict[str, Any] = {}
 
-        # Publishers for monitoring
+        # --- Node parameters (declared with defaults) ---
+        # Model / detection
+        self.declare_parameter("model_type", "yolo")
+        self.declare_parameter("model_path", "")
+        self.declare_parameter("classes", [])
+        self.declare_parameter("confidence", 0.5)
+        self.declare_parameter("max_detections", 50)
+
+        # Filters
+        self.declare_parameter("use_decimation", False)
+        self.declare_parameter("use_spatial", True)
+        self.declare_parameter("use_temporal", True)
+        self.declare_parameter("use_hole_filling", False)
+        self.declare_parameter("use_mask_filter", True)
+
+        # Camera / input
+        self.declare_parameter("use_realsense_ros_wrapper", True)
+        self.declare_parameter("color_resolution_width", 640)
+        self.declare_parameter("color_resolution_height", 480)
+        self.declare_parameter("fps", 30)
+        self.declare_parameter("depth_scale_override", 0.0)
+
+        # Topics / publishing
+        self.declare_parameter("publish_annotated_image", True)
+        self.declare_parameter("annotated_image_topic", "/detector/annotated_image")
+        self.declare_parameter("results_topic", "/detector/results")
+        self.declare_parameter("status_topic", "/detector/status")
+
+        # Read params into a dict for easy access
+        self.node_params = {
+            "model_type": self.get_parameter("model_type").value,
+            "model_path": self.get_parameter("model_path").value,
+            "classes": self.get_parameter("classes").value,
+            "confidence": float(self.get_parameter("confidence").value),
+            "max_detections": int(self.get_parameter("max_detections").value),
+            "use_decimation": bool(self.get_parameter("use_decimation").value),
+            "use_spatial": bool(self.get_parameter("use_spatial").value),
+            "use_temporal": bool(self.get_parameter("use_temporal").value),
+            "use_hole_filling": bool(self.get_parameter("use_hole_filling").value),
+            "use_mask_filter": bool(self.get_parameter("use_mask_filter").value),
+            "use_realsense_ros_wrapper": bool(self.get_parameter("use_realsense_ros_wrapper").value),
+            "color_resolution": [int(self.get_parameter("color_resolution_width").value), int(self.get_parameter("color_resolution_height").value)],
+            "fps": int(self.get_parameter("fps").value),
+            "depth_scale_override": float(self.get_parameter("depth_scale_override").value),
+            "publish_annotated_image": bool(self.get_parameter("publish_annotated_image").value),
+            "annotated_image_topic": self.get_parameter("annotated_image_topic").value,
+            "results_topic": self.get_parameter("results_topic").value,
+            "status_topic": self.get_parameter("status_topic").value,
+        }
+
+        # Publishers for monitoring (use parameterized topic names)
         self.model_info_pub = self.create_publisher(String, "/detector/model_info", 10)
-        self.results_pub = self.create_publisher(DetectionArray, "/detector/results", 10)
-        self.status_pub = self.create_publisher(String, "/detector/status", 10)
-        self.annotated_img_pub = self.create_publisher(Image, "/detector/annotated_image", 10)
+        self.results_pub = self.create_publisher(DetectionArray, self.node_params.get("results_topic", "/detector/results"), 10)
+        self.status_pub = self.create_publisher(String, self.node_params.get("status_topic", "/detector/status"), 10)
+        if self.node_params.get("publish_annotated_image", True):
+            self.annotated_img_pub = self.create_publisher(Image, self.node_params.get("annotated_image_topic", "/detector/annotated_image"), 10)
+        else:
+            self.annotated_img_pub = None
   
         self.last_frame_id = "camera_color_optical_frame"
 
@@ -91,7 +144,7 @@ class DetectionNode(Node):
         self._publish_status("ready", "Detector node started. Waiting for /detector/init.")
 
     def realsense_callback(self, msg):
-        self.color_img = self.bridge.imgmsg_to_cv2(msg.color, "bgr8")
+        self.color_img = self.bridge.imgmsg_to_cv2(msg.rgb, "bgr8")
         self.depth_img = self.bridge.imgmsg_to_cv2(msg.depth, "passthrough")
         self.depth_camera_info = getattr(msg, "depth_camera_info", None)
 
@@ -105,24 +158,35 @@ class DetectionNode(Node):
     def _handle_init(self, request, response) -> None:
         """Initialize detector with given configuration."""
         try:
-            # Build config dict from service request
+            # Build config dict from service request, falling back to node params when fields are empty
+            req_classes = list(request.classes) if request.classes and len(request.classes) > 0 else list(self.node_params.get("classes", []))
+            req_model_type = request.model_type if getattr(request, "model_type", None) else self.node_params.get("model_type")
+            req_model_path = request.model_path if getattr(request, "model_path", None) else self.node_params.get("model_path")
+            req_confidence = float(request.confidence) if getattr(request, "confidence", None) else float(self.node_params.get("confidence", 0.5))
+            req_rcnn_names = list(request.rcnn_class_names) if getattr(request, "rcnn_class_names", None) and len(request.rcnn_class_names) > 0 else None
+
+            camera_use_wrapper = bool(request.use_realsense_ros_wrapper) if hasattr(request, "use_realsense_ros_wrapper") else bool(self.node_params.get("use_realsense_ros_wrapper", True))
+            color_res_w = int(request.color_resolution_width) if hasattr(request, "color_resolution_width") and request.color_resolution_width > 0 else int(self.node_params.get("color_resolution", [640,480])[0])
+            color_res_h = int(request.color_resolution_height) if hasattr(request, "color_resolution_height") and request.color_resolution_height > 0 else int(self.node_params.get("color_resolution", [640,480])[1])
+            fps_val = int(request.fps) if hasattr(request, "fps") and request.fps > 0 else int(self.node_params.get("fps", 30))
+
             config = {
-                "model_type": request.model_type,
-                "model_path": request.model_path,
-                "classes": list(request.classes),
-                "confidence": float(request.confidence),
-                "rcnn_class_names": list(request.rcnn_class_names) if request.rcnn_class_names else None,
+                "model_type": req_model_type,
+                "model_path": req_model_path,
+                "classes": req_classes,
+                "confidence": req_confidence,
+                "rcnn_class_names": req_rcnn_names,
                 "filters": {
-                    "use_decimation": bool(request.use_decimation),
-                    "use_spatial": bool(request.use_spatial),
-                    "use_temporal": bool(request.use_temporal),
-                    "use_hole_filling": bool(request.use_hole_filling),
-                    "use_mask_filter": bool(request.use_mask_filter),
+                    "use_decimation": bool(request.use_decimation) if hasattr(request, "use_decimation") else bool(self.node_params.get("use_decimation", False)),
+                    "use_spatial": bool(request.use_spatial) if hasattr(request, "use_spatial") else bool(self.node_params.get("use_spatial", True)),
+                    "use_temporal": bool(request.use_temporal) if hasattr(request, "use_temporal") else bool(self.node_params.get("use_temporal", True)),
+                    "use_hole_filling": bool(request.use_hole_filling) if hasattr(request, "use_hole_filling") else bool(self.node_params.get("use_hole_filling", False)),
+                    "use_mask_filter": bool(request.use_mask_filter) if hasattr(request, "use_mask_filter") else bool(self.node_params.get("use_mask_filter", True)),
                 },
                 "camera": {
-                    "use_realsense_ros_wrapper": bool(request.use_realsense_ros_wrapper),
-                    "color_resolution": [request.color_resolution_width, request.color_resolution_height],
-                    "fps": int(request.fps),
+                    "use_realsense_ros_wrapper": camera_use_wrapper,
+                    "color_resolution": [color_res_w, color_res_h],
+                    "fps": fps_val,
                 },
             }
 
@@ -156,7 +220,11 @@ class DetectionNode(Node):
                 get_realsense_images = self.get_realsense_images if config["camera"]["use_realsense_ros_wrapper"] else None
             )
 
-            if config["camera"]["use_realsense_ros_wrapper"] and self.detector.depth_scale is None:
+            # Allow node-level override of depth scale (useful for non-standard publishers)
+            depth_override = float(self.node_params.get("depth_scale_override", 0.0))
+            if depth_override and depth_override > 0.0:
+                self.detector.depth_scale = depth_override
+            elif config["camera"]["use_realsense_ros_wrapper"] and self.detector.depth_scale is None:
                 # RealSense ROS wrapper depth image is typically uint16 in millimeters.
                 self.detector.depth_scale = 0.001
 
@@ -304,10 +372,11 @@ class DetectionNode(Node):
 
             # Publish annotated image
             if annotated_image is not None:
-                img_msg = self.bridge.cv2_to_imgmsg(annotated_image, "bgr8")
-                img_msg.header.stamp = self.get_clock().now().to_msg()
-                img_msg.header.frame_id = "camera_color_optical_frame"
-                self.annotated_img_pub.publish(img_msg)
+                if self.annotated_img_pub is not None:
+                    img_msg = self.bridge.cv2_to_imgmsg(annotated_image, "bgr8")
+                    img_msg.header.stamp = self.get_clock().now().to_msg()
+                    img_msg.header.frame_id = frame_id if frame_id is not None else self.last_frame_id
+                    self.annotated_img_pub.publish(img_msg)
 
         except Exception as exc:
             self._publish_status("error", f"Detection loop error: {exc}")
