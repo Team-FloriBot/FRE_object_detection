@@ -33,14 +33,14 @@ cv2.waitKey(0)"""
 
 
 class ObjDetection:
-    def __init__(self, classes, mode="test"):
+    def __init__(self, classes, mode="test", name="yolo26n_bee_beetle_butterfly"):
         self.W=640
         self.H=480
         self.mode = mode
 
         # Initialize a YOLO model (Prefer TensorRT engine if available)
         #name = "yolo26n_bee_beetle_butterfly"
-        name = "yolo26n_jutestripe_yellowpaper"
+        #name = "yolo26n_jutestripe_yellowpaper"
         model_pt = f"/model/{name}-seg.pt"
         device_suffix = os.getenv("DEVICE_SUFFIX", "") # e.g. "_pc" or "_jetson"
         model_engine = f"/model/{name}-seg{device_suffix}.engine"
@@ -110,7 +110,7 @@ class ObjDetection:
         results = self.model.predict(
             color_image,
             classes=self.class_ids,
-            conf=0.5,
+            conf=0.35,
             imgsz=640,
             rect=True,
         )
@@ -229,6 +229,6 @@ class ObjDetection:
         
 
 if __name__ == "__main__":
-    #person_detection = ObjDetection(["bee", "beetle", "butterfly"], mode="camera")
-    person_detection = ObjDetection(["jute-stripe", "yellow-paper"], mode="test")
+    #person_detection = ObjDetection(["bee", "beetle", "butterfly"], mode="camera", name="yolo26n_bee_beetle_butterfly")
+    person_detection = ObjDetection(["jute-stripe", "yellow-paper"], mode="camera", name="yolo26n_jutestripe_yellowpaper_02")
     person_detection.run()
