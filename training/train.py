@@ -117,4 +117,4 @@ def main(name: str = "yolo26n_jutestripe_yellowpaper") -> None:
 
 
 if __name__ == "__main__":
-    main(name="yolo26n_jutestripe_yellowpaper")
+    main(name="yolo26n_bee_beetle_butterfly")

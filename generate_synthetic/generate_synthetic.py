@@ -265,25 +265,26 @@ def random_place_no_overlap(bg, obj, mask, polygon, total_mask, max_tries=50):
     return 0, 0, 0, 0, poly, False 
 
 # --- CONFIGURATION ---
+"""task2
 NUM_GENERATED_IMAGES = 200       # Wie viele Bilder insgesamt erstellt werden sollen  
 USE_LIKE_IS = 10
-OBJS_PER_IMAGE = (1, 6)         # Zufällige Anzahl (Min, Max) an Objekten pro Bild
+OBJS_PER_IMAGE = (1, 20)         # Zufällige Anzahl (Min, Max) an Objekten pro Bild
 SCALE_RANGE = (0.25, 0.8)        # 20–80% der Hintergrundhöhe/Breite
-ROTATION_RANGE = (-20, 20)      # Drehung in Grad
+ROTATION_RANGE = (-25, 25)      # Drehung in Grad
 FLIP_PROB = 0.5                 # 50% Chance für horizontales Spiegeln
 BRIGHTNESS_RANGE = (0.7, 1.3)   # Helligkeits-Augmentation
 BLUR_PROB = 0.2                 # Chance für leichte Unschärfe
 
-"""task3
+"""
 NUM_GENERATED_IMAGES = 300       # Wie viele Bilder insgesamt erstellt werden sollen  
 USE_LIKE_IS = 10
-OBJS_PER_IMAGE = (1, 6)         # Zufällige Anzahl (Min, Max) an Objekten pro Bild
-SCALE_RANGE = (0.2, 0.8)        # 20–80% der Hintergrundhöhe/Breite
-ROTATION_RANGE = (-90, 90)      # Drehung in Grad
+OBJS_PER_IMAGE = (1, 20)         # Zufällige Anzahl (Min, Max) an Objekten pro Bild
+SCALE_RANGE = (0.25, 0.8)        # 20–80% der Hintergrundhöhe/Breite
+ROTATION_RANGE = (-180, 180)      # Drehung in Grad
 FLIP_PROB = 0.5                 # 50% Chance für horizontales Spiegeln
 BRIGHTNESS_RANGE = (0.7, 1.3)   # Helligkeits-Augmentation
 BLUR_PROB = 0.2                 # Chance für leichte Unschärfe
-"""
+
 
 # --- OUTDOOR AUGMENTATION CONFIG ---
 MOTION_BLUR_PROB = 0.1
