@@ -41,7 +41,7 @@ If you want to start the detector client directly from Bash, use the client node
 
 ```bash
 ros2 run ros2_detection_client detector_client run \
-	--model-path model/yolo26n_jute_stripe_yellow_paper_02-seg.pt \
+	--model-path model/yolo26n_jutestripe_yellowpaper-seg.pt \
 	--confidence 0.5 \
 	--duration 15 \
 	--use-realsense-ros-wrapper
@@ -52,7 +52,7 @@ If you want to call the detector services manually in Bash, the order is:
 ```bash
 ros2 service call /detector/init ros2_detection_interfaces/srv/Init '{
 	model_type: yolo,
-	model_path: model/yolo26n_jute_stripe_yellow_paper_02-seg.pt,
+	model_path: model/yolo26n_jutestripe_yellowpaper-seg.pt,
 	classes: [],
 	confidence: 0.5,
 	use_decimation: false,
