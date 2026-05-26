@@ -35,23 +35,51 @@ Use the interfaces in this order:
 6. Call `/detector/release`
 
 
-## Service Call Example (Manual)
+## Bash Start With Parameters
 
-Example `/detector/init` request:
+If you want to start the detector client directly from Bash, use the client node:
 
 ```bash
-ros2 service call /detector/init ros2_detection_interfaces/srv/Init "{model_type: yolo, model_path: model/tennisball_600_seg_yolo11_v02.pt, classes: ["Tennisball"], confidence: 0.5, use_decimation: false, use_spatial: false, use_temporal: true, use_hole_filling: true, use_mask_filter: true, color_resolution_width: 640, color_resolution_height: 480, use_realsense_ros_wrapper: True, rcnn_class_names: []}"
-ros2 service call /detector/start ros2_detection_interfaces/srv/Start "{}"
-ros2 service call /detector/stop ros2_detection_interfaces/srv/Stop "{}"
-ros2 service call /detector/release ros2_detection_interfaces/srv/Release "{}"
+ros2 run ros2_detection_client detector_client run \
+	--model-path model/yolo26n_jute_stripe_yellow_paper_02-seg.pt \
+	--confidence 0.5 \
+	--duration 15 \
+	--use-realsense-ros-wrapper
 ```
 
-Important `Init` fields:
+If you want to call the detector services manually in Bash, the order is:
 
-- `use_realsense_ros_wrapper`: bool
-- `model_path`: path to weights file
-- `classes`: class filter list, e.g. `[Tennisball]`
-- `confidence`: threshold (e.g. `0.5`)
+```bash
+ros2 service call /detector/init ros2_detection_interfaces/srv/Init '{
+	model_type: yolo,
+	model_path: model/yolo26n_jute_stripe_yellow_paper_02-seg.pt,
+	classes: [],
+	confidence: 0.5,
+	use_decimation: false,
+	use_spatial: false,
+	use_temporal: true,
+	use_hole_filling: true,
+	use_mask_filter: true,
+	use_realsense_ros_wrapper: true,
+	color_resolution_width: 640,
+	color_resolution_height: 480,
+	fps: 30,
+	rcnn_class_names: []
+}'
+
+ros2 service call /detector/start ros2_detection_interfaces/srv/Start '{}'
+ros2 service call /detector/stop ros2_detection_interfaces/srv/Stop '{}'
+ros2 service call /detector/release ros2_detection_interfaces/srv/Release '{}'
+```
+
+The important `Init` fields are:
+
+- `model_type`
+- `model_path`
+- `classes`
+- `confidence`
+- `use_realsense_ros_wrapper`
+
 
 You can also monitor outputs directly:
 
