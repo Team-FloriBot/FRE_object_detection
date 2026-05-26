@@ -136,7 +136,7 @@ class DetectionNode(Node):
 
         self.sub = self.create_subscription(
             RGBD,
-            "/camera/rgbd/image",
+            "/sensors/realsense_front/rgbd/image",
             self.realsense_callback,
             10
         )
