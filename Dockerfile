@@ -1,5 +1,5 @@
-# Use ROS2 Humble as base image
-FROM ros:humble
+# Use ROS2 Jazzy as base image for the client
+FROM ros:jazzy
 
 # Set working directory
 WORKDIR /root/ros2_ws
@@ -14,43 +14,29 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     && rm -rf /var/lib/apt/lists/*
 
-
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir torch
-
-RUN pip install --no-cache-dir \
-    opencv-python \
-    scikit-learn \
-    pyrealsense2 \
-    pyyaml \
-    ultralytics
-
-RUN pip install --no-cache-dir "numpy<2.0"
-
+# Install ROS2 Jazzy specific dependencies
 RUN apt-get update && apt-get install -y \
-    ros-humble-cv-bridge \
-    ros-humble-vision-opencv \
-    ros-humble-realsense2-camera-msgs
-
+    ros-jazzy-cv-bridge \
+    ros-jazzy-vision-opencv \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create directory structure
 RUN mkdir -p /root/ros2_ws/src
 
-# Copy the project files
-COPY ros2_detection /root/ros2_ws/src/ros2_detection
+# Copy the necessary packages
 COPY ros2_detection_interfaces /root/ros2_ws/src/ros2_detection_interfaces
 COPY ros2_detection_client /root/ros2_ws/src/ros2_detection_client
-COPY model /root/ros2_ws/model
-RUN . /opt/ros/humble/setup.sh && colcon build --symlink-install
 
-ENV ULTRALYTICS_CONFIG_DIR=/tmp
+# Build the workspace
+RUN . /opt/ros/jazzy/setup.sh && colcon build --symlink-install
 
 # Source setup in bashrc for convenience
-RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc && \
+RUN echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc && \
     echo "source /root/ros2_ws/install/setup.bash" >> ~/.bashrc
 
-# Set environment variables
+# Set environment variables for compatibility with Humble
 ENV ROS_DOMAIN_ID=0
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
+# Default command
+CMD ["bash"]
