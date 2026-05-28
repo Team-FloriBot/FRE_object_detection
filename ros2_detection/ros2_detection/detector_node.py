@@ -387,7 +387,7 @@ class DetectionNode(Node):
             return
 
         k = getattr(self.depth_camera_info, "k", None)
-        if not k or len(k) < 6:
+        if k is None or len(k) < 6:
             return
 
         fx = float(k[0])
