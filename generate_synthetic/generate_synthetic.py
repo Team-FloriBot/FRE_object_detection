@@ -21,6 +21,20 @@ WORK_W, WORK_H = 1280*2, 960*2  # 2x
 # Unterstützte Bildformate
 VALID_EXT = (".jpg", ".jpeg", ".png", ".webp")
 
+
+def list_files_with_ext(directory, valid_ext=VALID_EXT):
+    return [
+        file_name
+        for file_name in os.listdir(directory)
+        if file_name.lower().endswith(valid_ext)
+    ]
+
+
+USE_LIKE_IS_IMAGES = list_files_with_ext(os.path.join(IMAGE_DIR, "images"))
+OBJECT_IMAGES = list_files_with_ext(os.path.join(OBJECT_DIR, "images"))
+BG_FILES_OUT = list_files_with_ext(BG_DIR_OUT)
+BG_FILES_TAR = list_files_with_ext(BG_DIR_TAR)
+
 def load_polygon_label(path):
     with open(path, "r") as f:
         lines = [line.strip().split() for line in f if line.strip()]
@@ -33,6 +47,21 @@ def load_polygon_label(path):
     coords = list(map(float, line[1:]))
     polygon = np.array(coords).reshape(-1, 2)
     return cls, polygon
+
+def load_polygons_from_label(path):
+    polygons = []
+    with open(path, "r") as f:
+        for raw_line in f:
+            parts = raw_line.strip().split()
+            if len(parts) < 3:
+                continue
+
+            cls = int(parts[0])
+            coords = list(map(float, parts[1:]))
+            polygon = np.array(coords).reshape(-1, 2)
+            polygons.append((cls, polygon))
+
+    return polygons
 
 def polygon_to_mask(img_shape, polygon):
     mask = np.zeros(img_shape[:2], dtype=np.uint8)
@@ -265,11 +294,11 @@ def random_place_no_overlap(bg, obj, mask, polygon, total_mask, max_tries=50):
     return 0, 0, 0, 0, poly, False 
 
 # --- CONFIGURATION ---
-"""task2
-NUM_GENERATED_IMAGES = 200       # Wie viele Bilder insgesamt erstellt werden sollen  
-USE_LIKE_IS = 10
+
+NUM_GENERATED_IMAGES = 600       # Wie viele Bilder insgesamt erstellt werden sollen  
+USE_LIKE_IS = 43
 OBJS_PER_IMAGE = (1, 20)         # Zufällige Anzahl (Min, Max) an Objekten pro Bild
-SCALE_RANGE = (0.25, 0.8)        # 20–80% der Hintergrundhöhe/Breite
+SCALE_RANGE = (0.25, 0.9)        # 20–80% der Hintergrundhöhe/Breite
 ROTATION_RANGE = (-25, 25)      # Drehung in Grad
 FLIP_PROB = 0.5                 # 50% Chance für horizontales Spiegeln
 BRIGHTNESS_RANGE = (0.7, 1.3)   # Helligkeits-Augmentation
@@ -284,13 +313,17 @@ ROTATION_RANGE = (-180, 180)      # Drehung in Grad
 FLIP_PROB = 0.5                 # 50% Chance für horizontales Spiegeln
 BRIGHTNESS_RANGE = (0.7, 1.3)   # Helligkeits-Augmentation
 BLUR_PROB = 0.2                 # Chance für leichte Unschärfe
-
+"""
 
 # --- OUTDOOR AUGMENTATION CONFIG ---
 MOTION_BLUR_PROB = 0.1
 SHADOW_PROB = 0.15
 COLOR_TEMP_PROB = 0.15
 CONTRAST_PROB = 0.15
+OBJECT_COLORIZE_PROB = 0.80
+OBJECT_COLORIZE_MODE = "mild"
+USE_LIKE_IS_COLORIZE_PROB = 0.80
+USE_LIKE_IS_COLORIZE_MODE = "mild"
 JPEG_ARTIFACT_PROB = 0.1
 
 # --- BACKGROUND AUGMENTATION CONFIG ---
@@ -304,7 +337,7 @@ OBJECT_DISTRIBUTION = {
 }
 
 BG_SHADOW_PROB = 0.15
-BG_LIGHT_PROB = 0.10
+BG_LIGHT_PROB = 0.15
 BG_COLOR_TEMP_PROB = 0.10
 BG_CONTRAST_PROB = 0.10
 BG_JPEG_ARTIFACT_PROB = 0.10
@@ -346,7 +379,7 @@ def augment_background(bg):
     if random.random() < BG_LIGHT_PROB:
         light = np.zeros_like(bg)
         cx, cy = random.randint(0, w), random.randint(0, h)
-        radius = random.randint(80, 200)
+        radius = random.randint(40, 200)
         cv2.circle(light, (cx, cy), radius, (255, 255, 255), -1)
         bg = cv2.addWeighted(bg, 1, light, 0.25, 0)
 
@@ -373,6 +406,47 @@ def augment_background(bg):
         bg = cv2.addWeighted(bg, 1 - alpha, haze, alpha, 0)
 
     return bg
+
+def recolor_object_mild(obj):
+    hsv = cv2.cvtColor(obj, cv2.COLOR_BGR2HSV).astype(np.float32)
+
+    hue_shift = random.randint(-12, 12)
+    sat_scale = random.uniform(0.90, 1.18)
+    val_scale = random.uniform(0.92, 1.08)
+
+    hsv[..., 0] = (hsv[..., 0] + hue_shift) % 180
+    hsv[..., 1] = np.clip(hsv[..., 1] * sat_scale + random.uniform(0, 15), 0, 255)
+    hsv[..., 2] = np.clip(hsv[..., 2] * val_scale, 0, 255)
+
+    return cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+
+def recolor_object_full(obj):
+    hsv = cv2.cvtColor(obj, cv2.COLOR_BGR2HSV).astype(np.float32)
+
+    target_hue = random.randint(0, 179)
+    hue_jitter = random.randint(-8, 8)
+    sat_scale = random.uniform(0.85, 1.35)
+    val_scale = random.uniform(0.85, 1.10)
+
+    hsv[..., 0] = (target_hue + hue_jitter) % 180
+    hsv[..., 1] = np.clip(hsv[..., 1] * sat_scale + random.uniform(10, 35), 0, 255)
+    hsv[..., 2] = np.clip(hsv[..., 2] * val_scale, 0, 255)
+
+    return cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+
+def recolor_object_by_mode(obj, mode="full"):
+    if mode == "mild":
+        return recolor_object_mild(obj)
+    return recolor_object_full(obj)
+
+def recolor_image_regions(image, mask, mode="full"):
+    if mask is None or not np.any(mask):
+        return image
+
+    recolored = recolor_object_by_mode(image, mode=mode)
+    result = image.copy()
+    result[mask > 0] = recolored[mask > 0]
+    return result
 
 def scale_object_relative_to_bg(obj, bg_w, bg_h, scale):
     h, w = obj.shape[:2]
@@ -486,6 +560,9 @@ def augment_object(obj, mask, polygon_local):
         alpha = random.uniform(0.8, 1.3)
         obj = cv2.convertScaleAbs(obj, alpha=alpha, beta=0)
 
+    if random.random() < OBJECT_COLORIZE_PROB:
+        obj = recolor_object_by_mode(obj, mode=OBJECT_COLORIZE_MODE)
+
     # sicherstellen, dass die Maske uint8 ist (0/255)
     mask_for_contours = (mask_bin * 255).astype(np.uint8) if mask_bin.dtype != np.uint8 else mask_bin
 
@@ -515,8 +592,7 @@ def resize_and_center_crop(img, target_width=640, target_height=480):
     return final_img
 
 all_images = [
-    f for f in os.listdir(os.path.join(IMAGE_DIR, "images"))
-    if f.lower().endswith(VALID_EXT)
+    f for f in USE_LIKE_IS_IMAGES
 ]
 
 random.shuffle(all_images)
@@ -551,6 +627,17 @@ for i in range(NUM_GENERATED_IMAGES):
         if img is None:
             print("❌ Bild konnte nicht geladen werden:", img_name)
             continue
+
+        if random.random() < USE_LIKE_IS_COLORIZE_PROB and os.path.exists(label_path):
+            use_like_is_mask = np.zeros(img.shape[:2], dtype=np.uint8)
+            h, w = img.shape[:2]
+            for _, polygon_norm in load_polygons_from_label(label_path):
+                polygon_abs = polygon_norm.copy()
+                polygon_abs[:, 0] *= w
+                polygon_abs[:, 1] *= h
+                cv2.fillPoly(use_like_is_mask, [polygon_abs.astype(np.int32)], 255)
+
+            img = recolor_image_regions(img, use_like_is_mask, mode=USE_LIKE_IS_COLORIZE_MODE)
 
         # Bild einfach speichern
         cv2.imwrite(
@@ -587,7 +674,7 @@ for i in range(NUM_GENERATED_IMAGES):
             put_object_on_image = True
 
     # Hintergrund wählen und vorbereiten
-    bg_name = random.choice(os.listdir(bg_dir))
+    bg_name = random.choice(BG_FILES_TAR if bg_dir == BG_DIR_TAR else BG_FILES_OUT)
     bg = cv2.imread(os.path.join(bg_dir, bg_name))
 
     if bg is None:
@@ -612,10 +699,7 @@ for i in range(NUM_GENERATED_IMAGES):
     if put_object_on_image:
         num_objs = random.randint(*OBJS_PER_IMAGE)
         for _ in range(num_objs):
-            img_name = random.choice([
-                f for f in os.listdir(os.path.join(OBJECT_DIR, "images"))
-                if f.lower().endswith(VALID_EXT)
-            ])
+            img_name = random.choice(OBJECT_IMAGES)
 
             img_path = os.path.join(OBJECT_DIR, "images", img_name)
             label_path = os.path.join(OBJECT_DIR, "labels", img_name.rsplit(".", 1)[0] + ".txt")
