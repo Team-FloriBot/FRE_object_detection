@@ -62,7 +62,7 @@ docker compose --profile client up
 Oder manuell im Jazzy-Container:
 ```bash
 docker compose exec -it detector-client bash
-ros2 run ros2_detection_client detector_client run --model-path model/yolo26n_jute_stripe_yellow_paper_02-seg.pt --confidence 0.5 --duration 15 --use-realsense-ros-wrapper
+ros2 run ros2_detection_client detector_client run --model-path model/yolo26n_jute_stripe_yellow_paper-seg.pt --confidence 0.5 --duration 15 --use-realsense-ros-wrapper
 ```
 
 When using with RealSense ROS wrapper:
