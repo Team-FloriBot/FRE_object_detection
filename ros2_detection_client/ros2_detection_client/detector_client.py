@@ -22,7 +22,10 @@ class DetectorClient(Node):
 
         self.status_sub = self.create_subscription(String, "/detector/status", self._on_status, 10)
         self.model_info_sub = self.create_subscription(String, "/detector/model_info", self._on_model_info, 10)
+        self.available_models_sub = self.create_subscription(String, "/detector/available_models", self._on_available_models, 10)
         self.results_sub = self.create_subscription(DetectionArray, "/detector/results", self._on_results, 2)
+
+        self.available_models: list[str] = []
     def wait_for_services(self, timeout_sec: float = 10.0) -> bool:
         start = time.time()
         clients = [self.init_client, self.start_client, self.stop_client, self.release_client]
@@ -102,6 +105,19 @@ class DetectorClient(Node):
 
     def _on_model_info(self, msg: String) -> None:
         self.get_logger().info(f"MODEL_INFO: {msg.data}")
+
+    def _on_available_models(self, msg: String) -> None:
+        try:
+            models = json.loads(msg.data)
+            if not isinstance(models, list):
+                raise ValueError("available_models payload is not a list")
+
+            self.available_models = [str(model) for model in models]
+            self.get_logger().info("AVAILABLE_MODELS:")
+            for model_path in self.available_models:
+                self.get_logger().info(f"  - {model_path}")
+        except Exception as exc:
+            self.get_logger().error(f"Failed to parse available models: {exc}")
 
     def _on_results(self, msg: DetectionArray) -> None:
 
