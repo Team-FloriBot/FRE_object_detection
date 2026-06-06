@@ -294,7 +294,7 @@ def random_place_no_overlap(bg, obj, mask, polygon, total_mask, max_tries=50):
     return 0, 0, 0, 0, poly, False 
 
 # --- CONFIGURATION ---
-
+"""task2
 NUM_GENERATED_IMAGES = 600       # Wie viele Bilder insgesamt erstellt werden sollen  
 USE_LIKE_IS = 43
 OBJS_PER_IMAGE = (1, 20)         # Zufällige Anzahl (Min, Max) an Objekten pro Bild
@@ -305,25 +305,35 @@ BRIGHTNESS_RANGE = (0.7, 1.3)   # Helligkeits-Augmentation
 BLUR_PROB = 0.2                 # Chance für leichte Unschärfe
 
 """
-NUM_GENERATED_IMAGES = 300       # Wie viele Bilder insgesamt erstellt werden sollen  
-USE_LIKE_IS = 10
+"""task3
+NUM_GENERATED_IMAGES = 1000       # Wie viele Bilder insgesamt erstellt werden sollen  
+USE_LIKE_IS = 49 #49
 OBJS_PER_IMAGE = (1, 20)         # Zufällige Anzahl (Min, Max) an Objekten pro Bild
-SCALE_RANGE = (0.25, 0.8)        # 20–80% der Hintergrundhöhe/Breite
+SCALE_RANGE = (0.5, 2.0)        # 20–80% der Hintergrundhöhe/Breite
 ROTATION_RANGE = (-180, 180)      # Drehung in Grad
 FLIP_PROB = 0.5                 # 50% Chance für horizontales Spiegeln
 BRIGHTNESS_RANGE = (0.7, 1.3)   # Helligkeits-Augmentation
 BLUR_PROB = 0.2                 # Chance für leichte Unschärfe
 """
 
+NUM_GENERATED_IMAGES = 300       # Wie viele Bilder insgesamt erstellt werden sollen  
+USE_LIKE_IS = 31 
+OBJS_PER_IMAGE = (1, 20)         # Zufällige Anzahl (Min, Max) an Objekten pro Bild
+SCALE_RANGE = (0.7, 2.0)        # 20–80% der Hintergrundhöhe/Breite
+ROTATION_RANGE = (-180, 180)      # Drehung in Grad
+FLIP_PROB = 0.5                 # 50% Chance für horizontales Spiegeln
+BRIGHTNESS_RANGE = (0.2, 1.5)   # Helligkeits-Augmentation (stärker: dunkler bis heller)
+BLUR_PROB = 0.2                 # Chance für leichte Unschärfe
+
 # --- OUTDOOR AUGMENTATION CONFIG ---
 MOTION_BLUR_PROB = 0.1
 SHADOW_PROB = 0.15
 COLOR_TEMP_PROB = 0.15
 CONTRAST_PROB = 0.15
-OBJECT_COLORIZE_PROB = 0.80
-OBJECT_COLORIZE_MODE = "mild"
-USE_LIKE_IS_COLORIZE_PROB = 0.80
-USE_LIKE_IS_COLORIZE_MODE = "mild"
+OBJECT_COLORIZE_PROB = 1.0
+OBJECT_COLORIZE_MODE = "medium"
+USE_LIKE_IS_COLORIZE_PROB = 1.0
+USE_LIKE_IS_COLORIZE_MODE = "medium"
 JPEG_ARTIFACT_PROB = 0.1
 
 # --- BACKGROUND AUGMENTATION CONFIG ---
@@ -420,6 +430,20 @@ def recolor_object_mild(obj):
 
     return cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
 
+def recolor_object_medium(obj):
+    hsv = cv2.cvtColor(obj, cv2.COLOR_BGR2HSV).astype(np.float32)
+
+    hue_shift = random.randint(-22, 22)
+    sat_scale = random.uniform(0.86, 1.22)
+    val_scale = random.uniform(0.90, 1.12)
+    val_bias = random.uniform(-4, 12)
+
+    hsv[..., 0] = (hsv[..., 0] + hue_shift) % 180
+    hsv[..., 1] = np.clip(hsv[..., 1] * sat_scale, 0, 255)
+    hsv[..., 2] = np.clip(hsv[..., 2] * val_scale + val_bias, 0, 255)
+
+    return cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+
 def recolor_object_full(obj):
     hsv = cv2.cvtColor(obj, cv2.COLOR_BGR2HSV).astype(np.float32)
 
@@ -437,6 +461,8 @@ def recolor_object_full(obj):
 def recolor_object_by_mode(obj, mode="full"):
     if mode == "mild":
         return recolor_object_mild(obj)
+    if mode == "medium":
+        return recolor_object_medium(obj)
     return recolor_object_full(obj)
 
 def recolor_image_regions(image, mask, mode="full"):
@@ -446,6 +472,16 @@ def recolor_image_regions(image, mask, mode="full"):
     recolored = recolor_object_by_mode(image, mode=mode)
     result = image.copy()
     result[mask > 0] = recolored[mask > 0]
+    return result
+
+def recolor_polygons_individually(image, polygons, mode="full"):
+    result = image.copy()
+    for polygon in polygons:
+        mask = np.zeros(image.shape[:2], dtype=np.uint8)
+        cv2.fillPoly(mask, [polygon.astype(np.int32)], 255)
+        if np.any(mask):
+            result = recolor_image_regions(result, mask, mode=mode)
+
     return result
 
 def scale_object_relative_to_bg(obj, bg_w, bg_h, scale):
@@ -629,15 +665,15 @@ for i in range(NUM_GENERATED_IMAGES):
             continue
 
         if random.random() < USE_LIKE_IS_COLORIZE_PROB and os.path.exists(label_path):
-            use_like_is_mask = np.zeros(img.shape[:2], dtype=np.uint8)
             h, w = img.shape[:2]
+            polygons_abs = []
             for _, polygon_norm in load_polygons_from_label(label_path):
                 polygon_abs = polygon_norm.copy()
                 polygon_abs[:, 0] *= w
                 polygon_abs[:, 1] *= h
-                cv2.fillPoly(use_like_is_mask, [polygon_abs.astype(np.int32)], 255)
+                polygons_abs.append(polygon_abs)
 
-            img = recolor_image_regions(img, use_like_is_mask, mode=USE_LIKE_IS_COLORIZE_MODE)
+            img = recolor_polygons_individually(img, polygons_abs, mode=USE_LIKE_IS_COLORIZE_MODE)
 
         # Bild einfach speichern
         cv2.imwrite(

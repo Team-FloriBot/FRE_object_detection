@@ -62,7 +62,7 @@ def _build_output_data_yaml(project_root: Path) -> Path:
     return target_yaml
 
 
-def main(name: str = "yolo26n_jutestripe_yellowpaper") -> None:
+def main(name: str = "yolo26n_bee_beetle_butterfly") -> None:
     project_root = Path(__file__).resolve().parents[1]
     runs_dir = project_root / "runs"
 
@@ -73,7 +73,7 @@ def main(name: str = "yolo26n_jutestripe_yellowpaper") -> None:
 
     model.train(
         data=str(data_yaml),
-        epochs=100, #100
+        epochs=70, #100
         imgsz=640,
         batch=16,
         device="0",
@@ -117,4 +117,4 @@ def main(name: str = "yolo26n_jutestripe_yellowpaper") -> None:
 
 
 if __name__ == "__main__":
-    main(name="yolo26n_jutestripe_yellowpaper")
+    main(name="yolo26n_soilspot")

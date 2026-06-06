@@ -229,6 +229,7 @@ class ObjDetection:
         
 
 if __name__ == "__main__":
+    person_detection = ObjDetection(["soil_spot"], mode="test", name="yolo26n_soilspot")
     #person_detection = ObjDetection(["bee", "beetle", "butterfly"], mode="test", name="yolo26n_bee_beetle_butterfly")
-    person_detection = ObjDetection(["jute-stripe", "yellow-paper"], mode="test", name="yolo26n_jutestripe_yellowpaper")
+    #person_detection = ObjDetection(["jute-stripe", "yellow-paper"], mode="test", name="yolo26n_jutestripe_yellowpaper")
     person_detection.run()

@@ -18,7 +18,6 @@ venv311/
 
 # YOLO / Machine Learning
 runs/
-*.pt
 *.pth
 *.onnx
 *.log
@@ -43,11 +42,13 @@ object_images/*.txt
 
 object_images_task2/*
 object_images_task3/*
+object_images_task4/*
 
 dataset/*
 
 dataset_task2/*
 dataset_task3/*
+dataset_task4/*
 
 
 debug_images/
