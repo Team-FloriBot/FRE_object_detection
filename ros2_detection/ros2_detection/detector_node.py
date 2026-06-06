@@ -30,6 +30,7 @@ class DetectionNode(Node):
             - /detector/release (ros2_detection_interfaces/Release)
     
     Topics (Publications):
+            - /detector/available_models (std_msgs/String with JSON array of model_path strings)
       - /detector/model_info (std_msgs/String with JSON)
       - /detector/results (std_msgs/String with JSON)
       - /detector/status (std_msgs/String with JSON)
@@ -41,6 +42,7 @@ class DetectionNode(Node):
         self.detector: Optional[ObjDetection] = None
         self.detector_running = False
         self.loop_timer = None
+        self.available_models_timer = None
         self.detection_period_sec = 0.0
         self.current_config: Dict[str, Any] = {}
 
@@ -71,6 +73,8 @@ class DetectionNode(Node):
         self.declare_parameter("annotated_image_topic", "/detector/annotated_image")
         self.declare_parameter("results_topic", "/detector/results")
         self.declare_parameter("status_topic", "/detector/status")
+        self.declare_parameter("available_models_topic", "/detector/available_models")
+        self.declare_parameter("available_models_publish_period_sec", 10.0)
 
         # Read params into a dict for easy access
         self.node_params = {
@@ -92,16 +96,24 @@ class DetectionNode(Node):
             "annotated_image_topic": self.get_parameter("annotated_image_topic").value,
             "results_topic": self.get_parameter("results_topic").value,
             "status_topic": self.get_parameter("status_topic").value,
+            "available_models_topic": self.get_parameter("available_models_topic").value,
+            "available_models_publish_period_sec": float(self.get_parameter("available_models_publish_period_sec").value),
         }
 
         # Publishers for monitoring (use parameterized topic names)
         self.model_info_pub = self.create_publisher(String, "/detector/model_info", 10)
         self.results_pub = self.create_publisher(DetectionArray, self.node_params.get("results_topic", "/detector/results"), 10)
         self.status_pub = self.create_publisher(String, self.node_params.get("status_topic", "/detector/status"), 10)
+        self.available_models_pub = self.create_publisher(String, self.node_params.get("available_models_topic", "/detector/available_models"), 10)
         if self.node_params.get("publish_annotated_image", True):
             self.annotated_img_pub = self.create_publisher(Image, self.node_params.get("annotated_image_topic", "/detector/annotated_image"), 10)
         else:
             self.annotated_img_pub = None
+
+        publish_period_sec = float(self.node_params.get("available_models_publish_period_sec", 10.0))
+        if publish_period_sec <= 0.0:
+            publish_period_sec = 10.0
+        self.available_models_timer = self.create_timer(publish_period_sec, self._publish_available_models)
   
         self.last_frame_id = "camera_color_optical_frame"
 
@@ -141,6 +153,7 @@ class DetectionNode(Node):
             10
         )
 
+        self._publish_available_models()
         self._publish_status("ready", "Detector node started. Waiting for /detector/init.")
 
     def realsense_callback(self, msg):
@@ -418,6 +431,38 @@ class DetectionNode(Node):
                 pass
         self.detector = None
         self.detector_running = False
+
+    def _get_available_model_paths(self) -> List[str]:
+        """Return model files as relative paths matching the init request format."""
+        module_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        repo_root = os.path.dirname(module_root)
+        model_dir = os.path.join(repo_root, "model")
+
+        if not os.path.isdir(model_dir):
+            return []
+
+        supported_extensions = {".pt", ".pth", ".onnx", ".engine"}
+        model_paths = []
+        for filename in sorted(os.listdir(model_dir)):
+            full_path = os.path.join(model_dir, filename)
+            if not os.path.isfile(full_path):
+                continue
+
+            _, extension = os.path.splitext(filename)
+            if extension.lower() not in supported_extensions:
+                continue
+
+            model_paths.append(os.path.join("model", filename))
+
+        return model_paths
+
+    def _publish_available_models(self) -> None:
+        """Publish available model paths as a JSON array."""
+        if not hasattr(self, "available_models_pub"):
+            return
+
+        payload = json.dumps(self._get_available_model_paths())
+        self.available_models_pub.publish(String(data=payload))
 
     def _publish_status(self, level: str, message: str) -> None:
         """Publish status message."""

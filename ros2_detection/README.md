@@ -14,6 +14,7 @@ Control is service-based:
 
 Monitoring is topic-based:
 
+- `/detector/available_models`: periodic JSON array of available `model_path` strings.
 - `/detector/status`: runtime status and error messages.
 - `/detector/model_info`: model metadata after init.
 - `/detector/results`: continuous detection payload while running.
@@ -56,6 +57,7 @@ Important `Init` fields:
 You can also monitor outputs directly:
 
 ```bash
+ros2 topic echo /detector/available_models
 ros2 topic echo /detector/status
 ros2 topic echo /detector/model_info
 ros2 topic echo /detector/results
