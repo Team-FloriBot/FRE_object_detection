@@ -21,15 +21,15 @@ publish_annotated_image: bool - enable annotated image publisher
 annotated_image_topic: string - topic name for annotated images
 results_topic: string - topic name for detection results
 status_topic: string - topic for status messages
-
-Example values below:
 */
 
 /detector_node:
   ros__parameters:
     model_type: "yolo"
     model_path: "model/yolo_best.pt"
-    classes: ["jute_stripe_yellow_paper"]
+    classes:
+      - "jute_stripe_yellow_paper"
+
     confidence: 0.45
     max_detections: 40
 
@@ -49,3 +49,37 @@ Example values below:
     annotated_image_topic: "/detector/annotated_image"
     results_topic: "/detector/results"
     status_topic: "/detector/status"
+
+/sensors/realsense_front:
+  ros__parameters:
+    enable_color: true
+    enable_depth: true
+    enable_infra: false
+    enable_infra1: false
+    enable_infra2: false
+
+    enable_rgbd: true
+    enable_sync: true
+
+    align_depth.enable: true
+
+    rgb_camera.color_profile: "640x480x30"
+    rgb_camera.color_format: "RGB8"
+
+    depth_module.depth_profile: "640x480x30"
+    depth_module.depth_format: "Z16"
+
+    pointcloud.enable: false
+
+    publish_tf: false
+    tf_publish_rate: 0.0
+
+    initial_reset: true
+    reconnect_timeout: 6.0
+
+    diagnostics_period: 1.0
+
+    spatial_filter.enable: true
+    temporal_filter.enable: true
+    hole_filling_filter.enable: false
+    decimation_filter.enable: false
