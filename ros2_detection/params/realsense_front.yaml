@@ -1,14 +1,33 @@
 /sensors/realsense_front:
   ros__parameters:
+    enable_color: true
+    enable_depth: true
+    enable_infra: false
+    enable_infra1: false
+    enable_infra2: false
+
     enable_rgbd: true
     enable_sync: true
 
     align_depth.enable: true
 
-    enable_color: true
-    enable_depth: true
-
     rgb_camera.color_profile: "640x480x30"
+    rgb_camera.color_format: "RGB8"
+
     depth_module.depth_profile: "640x480x30"
+    depth_module.depth_format: "Z16"
+
+    pointcloud.enable: false
 
     publish_tf: false
+    tf_publish_rate: 0.0
+
+    initial_reset: true
+    reconnect_timeout: 6.0
+
+    diagnostics_period: 1.0
+
+    spatial_filter.enable: true
+    temporal_filter.enable: true
+    hole_filling_filter.enable: false
+    decimation_filter.enable: false
