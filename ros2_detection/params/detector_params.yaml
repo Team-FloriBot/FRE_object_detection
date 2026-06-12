@@ -43,6 +43,7 @@ Example values below:
 
     use_realsense_ros_wrapper: true
     rgbd_topics: ["/sensors/realsense_rear/rgbd"]
+    rgbd_topic: "/sensors/realsense_rear/rgbd"
     color_resolution_width: 640
     color_resolution_height: 480
     fps: 30
