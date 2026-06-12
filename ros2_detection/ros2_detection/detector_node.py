@@ -39,6 +39,7 @@ class DetectionNode(Node):
     def __init__(self) -> None:
         super().__init__("detector_node")
 
+        self.default_rgbd_topics = ["/sensors/realsense_rear/rgbd"]
         self.detector: Optional[ObjDetection] = None
         self.detector_running = False
         self.loop_timer = None
@@ -67,6 +68,7 @@ class DetectionNode(Node):
         self.declare_parameter("color_resolution_height", 480)
         self.declare_parameter("fps", 30)
         self.declare_parameter("depth_scale_override", 0.0)
+        self.declare_parameter("rgbd_topics", self.default_rgbd_topics)
 
         # Topics / publishing
         self.declare_parameter("publish_annotated_image", True)
@@ -92,6 +94,7 @@ class DetectionNode(Node):
             "color_resolution": [int(self.get_parameter("color_resolution_width").value), int(self.get_parameter("color_resolution_height").value)],
             "fps": int(self.get_parameter("fps").value),
             "depth_scale_override": float(self.get_parameter("depth_scale_override").value),
+            "rgbd_topics": self._normalize_rgbd_topics(self.get_parameter("rgbd_topics").value),
             "publish_annotated_image": bool(self.get_parameter("publish_annotated_image").value),
             "annotated_image_topic": self.get_parameter("annotated_image_topic").value,
             "results_topic": self.get_parameter("results_topic").value,
@@ -144,28 +147,79 @@ class DetectionNode(Node):
         self.color_img = None
         self.depth_img = None
         self.depth_camera_info = None
+        self.last_stamp = None
+        self.last_rgbd_topic = None
+        self._rgbd_receive_seq = 0
+        self.latest_rgbd_by_topic: Dict[str, Dict[str, Any]] = {}
         self._last_waiting_frame_status_sec = 0.0
 
-        self.sub = self.create_subscription(
-            RGBD,
-            "/sensors/realsense_front/rgbd",
-            self.realsense_callback,
-            10
-        )
+        self.subs = []
+        for topic in self.node_params["rgbd_topics"]:
+            self.subs.append(
+                self.create_subscription(
+                    RGBD,
+                    topic,
+                    lambda msg, topic=topic: self.realsense_callback(msg, topic),
+                    10
+                )
+            )
 
         self._publish_available_models()
         self._publish_status("ready", "Detector node started. Waiting for /detector/init.")
 
-    def realsense_callback(self, msg):
-        self.color_img = self.bridge.imgmsg_to_cv2(msg.rgb, "bgr8")
-        self.depth_img = self.bridge.imgmsg_to_cv2(msg.depth, "passthrough")
-        self.depth_camera_info = getattr(msg, "depth_camera_info", None)
+    def _normalize_rgbd_topics(self, topics) -> List[str]:
+        """Return a non-empty list of RGBD topic names."""
+        if isinstance(topics, str):
+            normalized_topics = [topics]
+        elif isinstance(topics, (list, tuple)):
+            normalized_topics = [str(topic) for topic in topics if isinstance(topic, str) and topic.strip()]
+        else:
+            normalized_topics = []
 
-        self.last_stamp = msg.rgb.header.stamp
-        self.last_frame_id = msg.rgb.header.frame_id
+        if not normalized_topics:
+            self.get_logger().warn(
+                f"Invalid or empty rgbd_topics parameter. Falling back to {self.default_rgbd_topics}."
+            )
+            return list(self.default_rgbd_topics)
 
-     # Ensure color image is not modified by OpenCV operations
+        return normalized_topics
+
+    def _stamp_to_nanoseconds(self, stamp) -> int:
+        return int(stamp.sec) * 1_000_000_000 + int(stamp.nanosec)
+
+    def realsense_callback(self, msg, topic: str) -> None:
+        color_img = self.bridge.imgmsg_to_cv2(msg.rgb, "bgr8")
+        depth_img = self.bridge.imgmsg_to_cv2(msg.depth, "passthrough")
+        stamp = msg.rgb.header.stamp
+        self._rgbd_receive_seq += 1
+
+        self.latest_rgbd_by_topic[topic] = {
+            "color_img": color_img,
+            "depth_img": depth_img,
+            "depth_camera_info": getattr(msg, "depth_camera_info", None),
+            "stamp": stamp,
+            "stamp_ns": self._stamp_to_nanoseconds(stamp),
+            "receive_seq": self._rgbd_receive_seq,
+            "frame_id": msg.rgb.header.frame_id,
+        }
+
+    # Ensure color image is not modified by OpenCV operations
     def get_realsense_images(self):
+        if not self.latest_rgbd_by_topic:
+            return None, None, None, None
+
+        topic, frame = max(
+            self.latest_rgbd_by_topic.items(),
+            key=lambda item: (item[1]["stamp_ns"], item[1]["receive_seq"]),
+        )
+
+        self.color_img = frame["color_img"]
+        self.depth_img = frame["depth_img"]
+        self.depth_camera_info = frame["depth_camera_info"]
+        self.last_stamp = frame["stamp"]
+        self.last_frame_id = frame["frame_id"]
+        self.last_rgbd_topic = topic
+
         return self.color_img.copy(), self.depth_img.copy(), self.last_frame_id, self.last_stamp
 
     def _handle_init(self, request, response) -> None:
@@ -322,7 +376,8 @@ class DetectionNode(Node):
                 if color_image is None or depth_image is None:
                     now = time.monotonic()
                     if now - self._last_waiting_frame_status_sec > 2.0:
-                        self._publish_status("ready", "Waiting for RGBD frames on /camera/rgbd/image.")
+                        topics = ", ".join(self.node_params.get("rgbd_topics", self.default_rgbd_topics))
+                        self._publish_status("ready", f"Waiting for RGBD frames on: {topics}.")
                         self._last_waiting_frame_status_sec = now
                     return
 

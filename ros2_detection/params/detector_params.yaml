@@ -13,6 +13,7 @@ max_detections: int - maximum number of detections to return
 use_decimation/use_spatial/use_temporal/use_hole_filling/use_mask_filter: booleans - pre/post filters
 
 use_realsense_ros_wrapper: bool - whether a ROS wrapper publishes RGBD frames
+rgbd_topics: list - RGBD input topics from the ROS wrapper (latest received frame is used)
 color_resolution_width/height: int - color capture resolution used when initializing camera
 fps: int - target FPS for the detection loop
 depth_scale_override: float - set to >0 to force a depth scale (meters per unit)
@@ -40,6 +41,7 @@ Example values below:
     use_mask_filter: true
 
     use_realsense_ros_wrapper: true
+    rgbd_topics: ["/sensors/realsense_rear/rgbd"]
     color_resolution_width: 640
     color_resolution_height: 480
     fps: 30

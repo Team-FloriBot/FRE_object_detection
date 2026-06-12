@@ -24,6 +24,16 @@ Message types:
 - Services: custom ROS2 service types in `ros2_detection_interfaces/srv/*`
 - Topics: `std_msgs/String` with JSON payload strings
 
+RGBD input is configured with the `rgbd_topics` node parameter. The default is
+`["/sensors/realsense_rear/rgbd"]`. Multiple RGBD topics can be subscribed at
+the same time; the detector uses the newest received frame.
+
+Example multi-camera override:
+
+```bash
+ros2 run ros2_detection detector_node --ros-args -p rgbd_topics:="['/sensors/realsense_rear/rgbd','/sensors/realsense_front/rgbd']"
+```
+
 ## Required Order
 
 Use the interfaces in this order:
@@ -53,6 +63,10 @@ Important `Init` fields:
 - `model_path`: path to weights file
 - `classes`: class filter list, e.g. `[Tennisball]`
 - `confidence`: threshold (e.g. `0.5`)
+
+Important node parameters:
+
+- `rgbd_topics`: list of `realsense2_camera_msgs/msg/RGBD` input topics
 
 You can also monitor outputs directly:
 
