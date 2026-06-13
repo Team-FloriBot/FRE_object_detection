@@ -288,10 +288,11 @@ class DetectionNode(Node):
             )
 
             # Allow node-level override of depth scale (useful for non-standard publishers)
-            depth_override = float(self.node_params.get("depth_scale_override", 0.0))
-            if depth_override and depth_override > 0.0:
-                self.detector.depth_scale = depth_override
-            elif config["camera"]["use_realsense_ros_wrapper"] and self.detector.depth_scale is None:
+            #depth_override = float(self.node_params.get("depth_scale_override", 0.0))
+            #if depth_override and depth_override > 0.0:
+            #    self.detector.depth_scale = depth_override
+            #el
+            if config["camera"]["use_realsense_ros_wrapper"] and self.detector.depth_scale is None:
                 # RealSense ROS wrapper depth image is typically uint16 in millimeters.
                 self.detector.depth_scale = 0.001
 
