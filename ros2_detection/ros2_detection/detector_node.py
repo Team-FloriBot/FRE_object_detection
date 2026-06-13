@@ -63,7 +63,7 @@ class DetectionNode(Node):
         self.declare_parameter("use_mask_filter", True)
 
         # Camera / input
-        self.declare_parameter("use_realsense_ros_wrapper", True)
+        self.declare_parameter("use_realsense_ros_wrapper", False)
         self.declare_parameter("color_resolution_width", 640)
         self.declare_parameter("color_resolution_height", 480)
         self.declare_parameter("fps", 30)
