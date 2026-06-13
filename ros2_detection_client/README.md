@@ -51,20 +51,20 @@ If you want to call the detector services manually in Bash, the order is:
 
 ```bash
 ros2 service call /detector/init ros2_detection_interfaces/srv/Init '{
-	model_type: yolo,
-	model_path: model/yolo26n_jutestripe_yellowpaper-seg.pt,
-	classes: [],
-	confidence: 0.5,
-	use_decimation: false,
-	use_spatial: false,
-	use_temporal: true,
-	use_hole_filling: true,
-	use_mask_filter: true,
-	use_realsense_ros_wrapper: true,
-	color_resolution_width: 640,
-	color_resolution_height: 480,
-	fps: 30,
-	rcnn_class_names: []
+model_type: yolo,
+model_path: model/yolo26n_jutestripe_yellowpaper-seg.pt,
+classes: [],
+confidence: 0.5,
+use_decimation: false,
+use_spatial: false,
+use_temporal: true,
+use_hole_filling: true,
+use_mask_filter: true,
+use_realsense_ros_wrapper: false,
+color_resolution_width: 640,
+color_resolution_height: 480,
+fps: 30,
+rcnn_class_names: []
 }'
 
 ros2 service call /detector/start ros2_detection_interfaces/srv/Start '{}'

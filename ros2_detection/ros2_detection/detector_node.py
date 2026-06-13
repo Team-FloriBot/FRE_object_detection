@@ -71,7 +71,7 @@ class DetectionNode(Node):
         self.declare_parameter("rgbd_topics", self.default_rgbd_topics)
 
         # Topics / publishing
-        self.declare_parameter("publish_annotated_image", True)
+        self.declare_parameter("publish_annotated_image", False)
         self.declare_parameter("annotated_image_topic", "/detector/annotated_image")
         self.declare_parameter("results_topic", "/detector/results")
         self.declare_parameter("status_topic", "/detector/status")
