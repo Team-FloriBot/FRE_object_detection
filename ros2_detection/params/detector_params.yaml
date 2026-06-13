@@ -41,7 +41,7 @@ Example values below:
     use_hole_filling: false
     use_mask_filter: true
 
-    use_realsense_ros_wrapper: true
+    use_realsense_ros_wrapper: false
     rgbd_topics: ["/sensors/realsense_rear/rgbd"]
     rgbd_topic: "/sensors/realsense_rear/rgbd"
     color_resolution_width: 640
