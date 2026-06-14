@@ -110,7 +110,7 @@ class ObjDetection:
         results = self.model.predict(
             color_image,
             classes=self.class_ids,
-            conf=0.35,
+            conf=0.3,
             imgsz=640,
             rect=True,
         )
