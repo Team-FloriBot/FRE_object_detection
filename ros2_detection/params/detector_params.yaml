@@ -48,7 +48,8 @@ Example values below:
     color_resolution_height: 480
     fps: 30
     depth_scale_override: 0.0
-
+    camera_frame_id: "realsense_rear_link"
+    
     publish_annotated_image: true
     annotated_image_topic: "/detector/annotated_image"
     results_topic: "/detector/results"
