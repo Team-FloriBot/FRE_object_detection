@@ -10,7 +10,7 @@ from std_msgs.msg import Bool
 from ros2_detection_interfaces.msg import DetectionArray, TrackedObject, TrackedObjectArray
 import math
 
-def distance(self, p1, p2):
+def distance(p1, p2):
     return math.sqrt(
         (p1.x - p2.x)**2 +
         (p1.y - p2.y)**2 +
