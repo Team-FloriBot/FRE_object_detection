@@ -4,6 +4,54 @@ import yaml
 from ultralytics import YOLO
 
 
+TRAINING_PRESETS = {
+    "default": {
+        "epochs": 70,
+        "batch": 16,
+        "patience": 20,
+        "optimizer": "AdamW",
+        "lr0": 0.001,
+        "hsv_h": 0.015,
+        "hsv_s": 0.35,
+        "hsv_v": 0.25,
+        "degrees": 5.0,
+        "translate": 0.05,
+        "scale": 0.35,
+        "shear": 0.0,
+        "flipud": 0.0,
+        "fliplr": 0.3,
+        "mosaic": 0.5,
+        "mixup": 0.0,
+        "copy_paste": 0.0,
+        "close_mosaic": 10,
+    },
+    # Fuer kleine echte Datensaetze: ca. 20-50 Bilder.
+    "small_finetune": {
+        "epochs": 140,
+        "batch": 4,
+        "patience": 35,
+        "optimizer": "AdamW",
+        "lr0": 0.00025,
+        "lrf": 0.01,
+        "weight_decay": 0.0005,
+        "warmup_epochs": 5,
+        "hsv_h": 0.01,
+        "hsv_s": 0.25,
+        "hsv_v": 0.18,
+        "degrees": 3.0,
+        "translate": 0.03,
+        "scale": 0.20,
+        "shear": 0.0,
+        "flipud": 0.0,
+        "fliplr": 0.2,
+        "mosaic": 0.15,
+        "mixup": 0.0,
+        "copy_paste": 0.0,
+        "close_mosaic": 20,
+    },
+}
+
+
 def _load_class_config(project_root: Path) -> tuple[int, list[str]]:
     candidate_files = [
         project_root / "dataset" / "data.yaml",
@@ -62,48 +110,47 @@ def _build_output_data_yaml(project_root: Path) -> Path:
     return target_yaml
 
 
-def main(name: str = "yolo26n_bee_beetle_butterfly") -> None:
+def _resolve_model_path(project_root: Path, model_name: str) -> Path | str:
+    if model_name == "yolo26n-seg.pt":
+        local_model_path = project_root / "model" / model_name
+        return local_model_path if local_model_path.exists() else model_name
+
+    model_path = project_root / "model" / model_name
+    if model_path.exists():
+        return model_path
+
+    available_models = sorted(path.name for path in (project_root / "model").glob("*.pt"))
+    raise FileNotFoundError(
+        f"Modell nicht gefunden: {model_path}. Verfuegbare Modelle in model/: {available_models}"
+    )
+
+
+def main(
+    name: str = "yolo26n_bee_beetle_butterfly",
+    preset: str = "default",
+    model_name: str = "yolo26n-seg.pt",
+) -> None:
     project_root = Path(__file__).resolve().parents[1]
     runs_dir = project_root / "runs"
 
-    model_path = project_root / "model" / "yolo26n-seg.pt"
-    model = YOLO(str(model_path if model_path.exists() else "yolo26n-seg.pt"))
+    if preset not in TRAINING_PRESETS:
+        raise ValueError(f"Unbekanntes Trainingspreset: {preset}. Verfuegbar: {sorted(TRAINING_PRESETS)}")
+    train_args = TRAINING_PRESETS[preset]
+
+    model_path = _resolve_model_path(project_root, model_name)
+    print("starting from model:", model_path)
+    model = YOLO(str(model_path))
 
     data_yaml = _build_output_data_yaml(project_root)
 
     model.train(
         data=str(data_yaml),
-        epochs=70, #100
         imgsz=640,
-        batch=16,
         device="0",
         project=str(runs_dir),
         name=name,
         exist_ok=True,
-
-        # --- REALISTISCHE FARBE ---
-        hsv_h=0.015,
-        hsv_s=0.35,
-        hsv_v=0.25,
-
-        # --- REALISTISCHE GEOMETRIE ---
-        degrees=5.0,
-        translate=0.05,
-        scale=0.35,
-        shear=0.0,
-        flipud=0.0,   # Top-Down Kamera
-        fliplr=0.3,
-
-        # --- MIX-STRATEGIEN ---
-        mosaic=0.5,
-        mixup=0.0,
-        copy_paste=0.0,
-
-        # --- TRAINING ---
-        optimizer="AdamW",
-        lr0=0.001,
-        patience=20,
-        close_mosaic=10,
+        **train_args,
     )
 
 
@@ -119,4 +166,8 @@ def main(name: str = "yolo26n_bee_beetle_butterfly") -> None:
 if __name__ == "__main__":
     #main(name="yolo26n_bee_beetle_butterfly")
     #main(name="yolo26n_jutestripe_yellowpaper")
-    main(name="yolo26n_soilspot")
+    main(
+        name="yolo26n_soilspot_real50",
+        preset="small_finetune",
+        model_name="yolo26n_soilspot-seg.pt",
+    )
