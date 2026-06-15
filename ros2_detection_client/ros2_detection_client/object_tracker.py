@@ -50,19 +50,35 @@ class ObjectTracker(Node):
         
         # Header aus ROS Message
         target_time = msg.header.stamp
+        lookup_time = Time.from_msg(target_time)
         target_frame = msg.header.frame_id
 
-        # TF lookup map <- camera(frame aus message)
+        # TF lookup map <- camera(frame aus message). Falls die TF zum
+        # Detection-Timestamp nicht mehr verfuegbar ist, nimm die neueste.
         try:
             transform = self.tf_buffer.lookup_transform(
                 self.to_frame_rel,
                 target_frame,
-                target_time,
+                lookup_time,
                 timeout=rclpy.duration.Duration(seconds=0.1)
             )
-        except Exception as e:
-            self.get_logger().warn(f"TF lookup failed: {e}")
-            return
+        except Exception as timestamp_error:
+            try:
+                transform = self.tf_buffer.lookup_transform(
+                    self.to_frame_rel,
+                    target_frame,
+                    Time(),
+                    timeout=rclpy.duration.Duration(seconds=0.1)
+                )
+                self.get_logger().warn(
+                    f"TF lookup at detection timestamp failed, using latest transform: "
+                    f"{timestamp_error}"
+                )
+            except Exception as latest_error:
+                self.get_logger().warn(
+                    f"TF lookup failed at timestamp and latest transform: {latest_error}"
+                )
+                return
 
         num = len(msg.detections)
 
