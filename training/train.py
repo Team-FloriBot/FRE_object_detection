@@ -166,8 +166,13 @@ def main(
 if __name__ == "__main__":
     #main(name="yolo26n_bee_beetle_butterfly")
     #main(name="yolo26n_jutestripe_yellowpaper")
+    #main(
+    #    name="yolo26n_soilspot_fine01",
+    #    preset="small_finetune",
+    #    model_name="yolo26n_soilspot-seg.pt",
+    #)
     main(
-        name="yolo26n_soilspot_real50",
+        name="yolo26n_jutestripe_yellowpaper_fine01",
         preset="small_finetune",
-        model_name="yolo26n_soilspot-seg.pt",
+        model_name="yolo26n_jutestripe_yellowpaper-seg.pt",
     )
