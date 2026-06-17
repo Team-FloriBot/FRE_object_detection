@@ -40,7 +40,7 @@ class DetectionNode(Node):
         super().__init__("detector_node")
 
         self.default_rgbd_topics = ["/sensors/realsense_rear/rgbd"]
-        self.default_camera_frame_id = "realsense_rear_link"
+        self.default_camera_frame_id = "realsense_front_link"
 
         self.detector: Optional[ObjDetection] = None
         self.detector_running = False
